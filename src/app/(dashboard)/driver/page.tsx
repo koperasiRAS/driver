@@ -88,6 +88,7 @@ export default function DriverDashboard() {
   if (loading) return <LoadingPage />
 
   const surplus = todayTotal - DAILY_TARGET - todayExpenses
+  const saldo = todayTotal - todayExpenses
   const targetReached = todayTotal >= DAILY_TARGET
   const progressPct = Math.min(Math.round((monthlyDeposits / MONTHLY_TARGET) * 100), 100)
 
@@ -141,6 +142,22 @@ export default function DriverDashboard() {
                 {surplus >= 0 ? 'sisa bersih' : 'belum tercapai'}
               </p>
             </div>
+          </div>
+
+          {/* Saldo Card — Full width horizontal */}
+          <div className="mt-3 flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Saldo Hari Ini</p>
+                <p className="text-xs text-slate-400">{formatCurrency(todayTotal)} - {formatCurrency(todayExpenses)}</p>
+              </div>
+            </div>
+            <p className={`text-xl font-bold ${saldo >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600'}`}>
+              {formatCurrency(saldo)}
+            </p>
           </div>
 
           {/* Progress bar */}

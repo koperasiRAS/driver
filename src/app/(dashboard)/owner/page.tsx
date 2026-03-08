@@ -142,6 +142,7 @@ export default function OwnerDashboard() {
 
   const progressPercentage = Math.min(Math.round((stats.monthlyDeposits / stats.monthlyTarget) * 100), 100)
   const driverSurplus = driverIncome - DAILY_TARGET - driverExpenses
+  const driverSaldo = driverIncome - driverExpenses
   const driverTargetReached = driverIncome >= DAILY_TARGET
 
   return (
@@ -271,6 +272,22 @@ export default function OwnerDashboard() {
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">{driverSurplus >= 0 ? 'sisa bersih' : 'belum tercapai'}</p>
                 </div>
+              </div>
+
+              {/* Saldo Card — horizontal full width */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                    <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Saldo Hari Ini</p>
+                    <p className="text-xs text-slate-400">{formatCurrency(driverIncome)} - {formatCurrency(driverExpenses)}</p>
+                  </div>
+                </div>
+                <p className={`text-lg font-bold ${driverSaldo >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600'}`}>
+                  {formatCurrency(driverSaldo)}
+                </p>
               </div>
 
               {/* Progress bar */}
