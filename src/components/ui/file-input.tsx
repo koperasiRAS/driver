@@ -39,7 +39,6 @@ const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
             type="file"
             id={id}
             accept={accept}
-            capture="environment"
             onChange={handleChange}
             className={cn(
               'w-full h-10 px-3 border rounded-md text-sm transition-all duration-150',
