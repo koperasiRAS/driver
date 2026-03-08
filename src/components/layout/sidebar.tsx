@@ -98,7 +98,7 @@ export function Sidebar({ role, mobileOpen, onClose }: SidebarProps) {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 pb-8 border-t border-slate-700" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white w-full transition-colors"
