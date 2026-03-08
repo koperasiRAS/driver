@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingPage } from '@/components/common/loading-spinner'
-import { Users, FileText, DollarSign, Target, TrendingUp, Truck, ChevronDown, Clock, Image as ImageIcon } from 'lucide-react'
+import { Users, FileText, DollarSign, Target, TrendingUp, Truck, ChevronDown, Clock, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency, formatTime, getTodayDateString } from '@/lib/utils'
 import { DAILY_TARGET, MONTHLY_TARGET } from '@/lib/constants'
@@ -14,6 +14,15 @@ interface DriverInfo {
   id: string
   vehicle_plate: string
   profile: { full_name: string; email: string }
+}
+
+interface DriverDepositInfo {
+  driverId: string
+  driverName: string
+  vehiclePlate: string
+  monthlyDeposit: number
+  target: number
+  percentage: number
 }
 
 export default function OwnerDashboard() {
@@ -29,6 +38,7 @@ export default function OwnerDashboard() {
   const [driverOrders, setDriverOrders] = useState(0)
   const [loadingDriver, setLoadingDriver] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [driverDeposits, setDriverDeposits] = useState<DriverDepositInfo[]>([])
 
   useEffect(() => {
     const supabase = createClient()
@@ -72,11 +82,35 @@ export default function OwnerDashboard() {
       }
     }
 
-    // Fetch driver list
+    // Fetch driver list + per-driver monthly deposits
     const fetchDrivers = async () => {
       try {
         const { data } = await supabase.from('drivers').select('id, vehicle_plate, profile:profiles(full_name, email)').eq('is_active', true).order('created_at')
-        if (data) setDrivers(data as unknown as DriverInfo[])
+        if (data) {
+          const driverList = data as unknown as DriverInfo[]
+          setDrivers(driverList)
+
+          // Fetch per-driver monthly deposits
+          const now = new Date()
+          const jakartaDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+          const firstDay = new Date(jakartaDate.getFullYear(), jakartaDate.getMonth(), 1).toISOString().split('T')[0]
+
+          const depositPromises = driverList.map(async (d) => {
+            const { data: deps } = await supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDay)
+            const total = (deps || []).reduce((sum, dep) => sum + Number(dep.amount), 0)
+            const pct = Math.round((total / MONTHLY_TARGET) * 100)
+            return {
+              driverId: d.id,
+              driverName: d.profile?.full_name || 'Driver',
+              vehiclePlate: d.vehicle_plate || '-',
+              monthlyDeposit: total,
+              target: MONTHLY_TARGET,
+              percentage: pct,
+            }
+          })
+          const results = await Promise.all(depositPromises)
+          setDriverDeposits(results)
+        }
       } catch { /* */ }
     }
 
@@ -140,7 +174,8 @@ export default function OwnerDashboard() {
     return <LoadingPage />
   }
 
-  const progressPercentage = Math.min(Math.round((stats.monthlyDeposits / stats.monthlyTarget) * 100), 100)
+  const totalTarget = MONTHLY_TARGET * Math.max(stats.totalDrivers, 1)
+  const progressPercentage = Math.min(Math.round((stats.monthlyDeposits / totalTarget) * 100), 100)
   const driverSurplus = driverIncome - DAILY_TARGET - driverExpenses
   const driverSaldo = driverIncome - driverExpenses
   const driverTargetReached = driverIncome >= DAILY_TARGET
@@ -189,18 +224,104 @@ export default function OwnerDashboard() {
 
         <Card className="animate-fade-in stagger-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">Setoran Bulanan</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Setoran Bulanan</CardTitle>
             <TrendingUp className="w-4 h-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-800 dark:text-white">{progressPercentage}%</div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(stats.monthlyDeposits)}</div>
             <div className="mt-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-              <div className="bg-teal-600 h-1.5 rounded-full transition-all" style={{ width: `${progressPercentage}%` }} />
+              <div className={`h-1.5 rounded-full transition-all ${progressPercentage >= 100 ? 'bg-emerald-500' : 'bg-teal-600'}`} style={{ width: `${progressPercentage}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-1">{formatCurrency(stats.monthlyDeposits)} / {formatCurrency(stats.monthlyTarget)}</p>
+            <p className="text-xs text-slate-400 mt-1">{progressPercentage}% dari {formatCurrency(totalTarget)} ({stats.totalDrivers} driver)</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* ====== PER-DRIVER DEPOSIT MONITORING ====== */}
+      {driverDeposits.length > 0 && (
+        <Card className="animate-fade-in">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Target className="w-5 h-5 text-teal-600" />
+              Monitoring Setoran Per Driver
+              <Badge variant="default" className="ml-auto text-xs">
+                Target: {formatCurrency(MONTHLY_TARGET)}/driver/bulan
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {driverDeposits.map((dd) => {
+                const isWarning = dd.percentage < 50
+                const isDanger = dd.percentage < 25
+                const isComplete = dd.percentage >= 100
+                return (
+                  <button
+                    key={dd.driverId}
+                    onClick={() => setSelectedDriverId(dd.driverId)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all hover:shadow-sm ${
+                      isDanger
+                        ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+                        : isWarning
+                        ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                        : isComplete
+                        ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'
+                    }`}
+                  >
+                    {/* Warning icon */}
+                    {isDanger && <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />}
+                    {isWarning && !isDanger && <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />}
+                    {isComplete && <span className="text-lg shrink-0">✅</span>}
+
+                    {/* Driver info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{dd.driverName}</p>
+                        <span className="text-xs text-slate-400">({dd.vehiclePlate})</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            isDanger ? 'bg-red-500' : isWarning ? 'bg-amber-500' : isComplete ? 'bg-emerald-500' : 'bg-teal-600'
+                          }`}
+                          style={{ width: `${Math.min(dd.percentage, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {formatCurrency(dd.monthlyDeposit)} / {formatCurrency(MONTHLY_TARGET)}
+                      </p>
+                    </div>
+
+                    {/* Percentage */}
+                    <Badge
+                      variant={isDanger ? 'danger' : isWarning ? 'warning' : isComplete ? 'success' : 'default'}
+                      className="shrink-0 text-xs"
+                    >
+                      {dd.percentage}%
+                    </Badge>
+                  </button>
+                )
+              })}
+
+              {/* Summary warning */}
+              {driverDeposits.some(dd => dd.percentage < 50) && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                      ⚠️ {driverDeposits.filter(dd => dd.percentage < 50).length} driver belum mencapai 50% target bulan ini
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                      Klik driver di atas untuk melihat detail pendapatan harian
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ====== DRIVER MONITORING SECTION ====== */}
       <Card className="animate-fade-in">
