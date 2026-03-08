@@ -49,10 +49,14 @@ export default function DriverReportPage() {
   const [reason, setReason] = useState<string>('libur')
   const [notes, setNotes] = useState('')
 
-  // Photo proof
+  // Photo proof (for narik)
   const [proofPhoto, setProofPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  // Photo proof (for tidak narik)
+  const [tidakNarikPhoto, setTidakNarikPhoto] = useState<File | null>(null)
+  const [tidakNarikPhotoPreview, setTidakNarikPhotoPreview] = useState<string | null>(null)
 
   // GPS
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -201,6 +205,25 @@ export default function DriverReportPage() {
         reportData.photo_url = urlData.publicUrl
       } else {
         reportData.reason = reason
+
+        // Upload tidak narik photo if provided
+        if (tidakNarikPhoto) {
+          setUploadingPhoto(true)
+          const fileExt = tidakNarikPhoto.name.split('.').pop()
+          const fileName = `tidak_narik_${driver.id}_${Date.now()}.${fileExt}`
+          const filePath = `${driver.id}/${fileName}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('driver-photos')
+            .upload(filePath, tidakNarikPhoto, { contentType: tidakNarikPhoto.type, upsert: false })
+
+          setUploadingPhoto(false)
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('driver-photos').getPublicUrl(filePath)
+            reportData.photo_url = urlData.publicUrl
+          }
+        }
       }
 
       if (notes) reportData.notes = notes
@@ -239,6 +262,8 @@ export default function DriverReportPage() {
         setNotes('')
         setProofPhoto(null)
         setPhotoPreview(null)
+        setTidakNarikPhoto(null)
+        setTidakNarikPhotoPreview(null)
       }, 2000)
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.')
@@ -480,6 +505,57 @@ export default function DriverReportPage() {
                   onChange={(e) => setReason(e.target.value)}
                   options={REASON_OPTIONS}
                 />
+
+                {/* Photo documentation for tidak narik */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    📸 Foto Bukti / Dokumentasi <span className="text-slate-400 text-xs font-normal">(opsional)</span>
+                  </label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                    Foto bukti kenapa tidak narik (surat dokter, foto kendaraan rusak, dll)
+                  </p>
+
+                  {!tidakNarikPhotoPreview ? (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-all">
+                      <Camera className="w-6 h-6 text-slate-400 mb-2" />
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Tap untuk upload foto</span>
+                      <span className="text-xs text-slate-400 mt-1">JPG, PNG, JPEG</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setTidakNarikPhoto(file)
+                            setTidakNarikPhotoPreview(URL.createObjectURL(file))
+                          }
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <div className="relative inline-block">
+                      <img
+                        src={tidakNarikPhotoPreview}
+                        alt="Preview"
+                        className="w-full max-w-sm h-40 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTidakNarikPhoto(null)
+                          setTidakNarikPhotoPreview(null)
+                        }}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Foto siap dikirim
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -524,12 +600,24 @@ export default function DriverReportPage() {
                   className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Badge variant={report.status === 'narik' ? 'success' : 'default'}>
-                      {report.status === 'narik' ? 'NARIK' : 'TIDAK NARIK'}
-                    </Badge>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {formatTime(report.submitted_at)}
-                    </span>
+                    {report.photo_url && (
+                      <img src={report.photo_url} alt="Bukti" className="w-10 h-10 rounded-md object-cover border border-slate-200 dark:border-slate-600" />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={report.status === 'narik' ? 'success' : 'warning'}>
+                          {report.status === 'narik' ? 'NARIK' : 'TIDAK NARIK'}
+                        </Badge>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatTime(report.submitted_at)}
+                        </span>
+                      </div>
+                      {report.status === 'tidak_narik' && report.reason && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Alasan: {REASON_OPTIONS.find(r => r.value === report.reason)?.label || report.reason}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   {report.status === 'narik' && (
                     <span className="font-semibold text-teal-600">
