@@ -60,7 +60,15 @@ export default function OwnerDashboard() {
     const supabase = createClient()
 
     const fetchAll = async () => {
+      // Reset stale data immediately so previous month's data doesn't show during re-fetch
+      setDriverDeposits([])
+      setDriverReports([])
+      setDriverIncome(0)
+      setDriverExpenses(0)
+      setDriverOrders(0)
+
       const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
+      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
 
       // 1. Check if selected month is settled
       let settledAt: string | null = null
@@ -105,7 +113,7 @@ export default function OwnerDashboard() {
             monthlyDeposits = settlementTotalAmount
           } else {
             // Belum settle — query live deposits
-            let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+            let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth).lte('deposit_date', lastDayOfMonth)
             const { data: deposits } = await depositsQuery
             monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
           }
@@ -124,7 +132,7 @@ export default function OwnerDashboard() {
           setDrivers(driverList)
 
           const depositPromises = driverList.map(async (d) => {
-            let depsQuery = supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+            let depsQuery = supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDayOfMonth).lte('deposit_date', lastDayOfMonth)
             // Jika bulan LUNAS, tampilkan deposits sebelum settlement
             if (settledAt) {
               depsQuery = depsQuery.lt('reviewed_at', settledAt)
@@ -176,14 +184,18 @@ export default function OwnerDashboard() {
     const fetchDriverData = async () => {
       setLoadingDriver(true)
       const supabase = createClient()
-      const today = getTodayDateString()
 
-      // Reports
+      // Build date range from selected filter
+      const selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`
+      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
+
+      // Reports for selected month
       const { data: reports } = await supabase
         .from('daily_reports')
         .select('*')
         .eq('driver_id', selectedDriverId)
-        .eq('report_date', today)
+        .gte('report_date', selectedDate)
+        .lte('report_date', lastDayOfMonth)
         .order('submitted_at', { ascending: false })
 
       const reps = reports || []
@@ -193,9 +205,9 @@ export default function OwnerDashboard() {
       setDriverIncome(income)
       setDriverOrders(orders)
 
-      // Expenses
+      // Expenses for selected month
       try {
-        const { data: expenses } = await supabase.from('driver_expenses').select('amount').eq('driver_id', selectedDriverId).eq('expense_date', today)
+        const { data: expenses } = await supabase.from('driver_expenses').select('amount').eq('driver_id', selectedDriverId).gte('expense_date', selectedDate).lte('expense_date', lastDayOfMonth)
         setDriverExpenses((expenses || []).reduce((sum, e) => sum + Number(e.amount), 0))
       } catch { setDriverExpenses(0) }
 
@@ -203,14 +215,14 @@ export default function OwnerDashboard() {
     }
 
     fetchDriverData()
-  }, [selectedDriverId])
+  }, [selectedDriverId, selectedYear, selectedMonth])
 
   if (loading || !stats) {
     return <LoadingPage />
   }
 
   const totalTarget = MONTHLY_TARGET * Math.max(stats.totalDrivers, 1)
-  const progressPercentage = Math.min(Math.round((stats.monthlyDeposits / totalTarget) * 100), 100)
+  const progressPercentage = totalTarget > 0 ? Math.min(Math.round((stats.monthlyDeposits / totalTarget) * 100), 100) : 0
   const driverSurplus = driverIncome - DAILY_TARGET - driverExpenses
   const driverSaldo = driverIncome - driverExpenses
   const driverTargetReached = driverIncome >= DAILY_TARGET
@@ -301,7 +313,7 @@ export default function OwnerDashboard() {
       </div>
 
       {/* ====== PER-DRIVER DEPOSIT MONITORING ====== */}
-      {driverDeposits.length > 0 && (
+      {driverDeposits.length > 0 && driverDeposits.some(dd => dd.monthlyDeposit > 0) ? (
         <Card className="animate-fade-in">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -385,6 +397,22 @@ export default function OwnerDashboard() {
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <Card className="animate-fade-in">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Target className="w-5 h-5 text-teal-600" />
+              Monitoring Setoran Per Driver
+              <span className="text-xs font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-2 py-0.5 rounded-full ml-1">{currentMonthLabel}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-slate-400">
+              <Target className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Belum ada setoran di bulan {currentMonthLabel}</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* ====== DRIVER MONITORING SECTION ====== */}
@@ -416,7 +444,7 @@ export default function OwnerDashboard() {
           {selectedDriverId === 'all' ? (
             <div className="text-center py-8 text-slate-400">
               <Truck className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Pilih driver untuk melihat pendapatan hari ini</p>
+              <p className="text-sm">Pilih driver untuk melihat pendapatan bulan {currentMonthLabel}</p>
             </div>
           ) : loadingDriver ? (
             <div className="text-center py-8 text-slate-400">
@@ -442,7 +470,7 @@ export default function OwnerDashboard() {
                 <div className="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
                   <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Pengeluaran</p>
                   <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(driverExpenses)}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">hari ini</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{currentMonthLabel}</p>
                 </div>
                 <div className={`text-center p-3 rounded-lg border ${
                   driverSurplus >= 0 
@@ -491,7 +519,7 @@ export default function OwnerDashboard() {
                 <div>
                   <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
                     <Clock className="w-4 h-4" />
-                    Laporan Hari Ini ({driverReports.length})
+                    Laporan {currentMonthLabel} ({driverReports.length})
                   </h4>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {driverReports.map((report) => (
@@ -528,7 +556,7 @@ export default function OwnerDashboard() {
               )}
 
               {driverReports.length === 0 && (
-                <p className="text-center text-sm text-slate-400 py-4">Driver belum mengirim laporan hari ini</p>
+                <p className="text-center text-sm text-slate-400 py-4">Belum ada laporan di bulan {currentMonthLabel}</p>
               )}
             </div>
           )}
