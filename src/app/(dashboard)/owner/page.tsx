@@ -41,24 +41,35 @@ export default function OwnerDashboard() {
   const [driverDeposits, setDriverDeposits] = useState<DriverDepositInfo[]>([])
   const [currentSettlement, setCurrentSettlement] = useState<{ settled_at: string } | null>(null)
 
+  // Filter state
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1)
+
+  const MONTHS = [
+    { value: 1, label: 'Januari' }, { value: 2, label: 'Februari' },
+    { value: 3, label: 'Maret' }, { value: 4, label: 'April' },
+    { value: 5, label: 'Mei' }, { value: 6, label: 'Juni' },
+    { value: 7, label: 'Juli' }, { value: 8, label: 'Agustus' },
+    { value: 9, label: 'September' }, { value: 10, label: 'Oktober' },
+    { value: 11, label: 'November' }, { value: 12, label: 'Desember' },
+  ]
+
+  const YEARS = [0, 1, 2, 3, 4].map(i => new Date().getFullYear() - i)
+
   useEffect(() => {
     const supabase = createClient()
 
     const fetchAll = async () => {
-      const now = new Date()
-      const jakartaDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
-      const firstDayOfMonth = new Date(jakartaDate.getFullYear(), jakartaDate.getMonth(), 1)
-        .toISOString()
-        .split('T')[0]
+      const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
 
-      // 1. Check if current month is settled
+      // 1. Check if selected month is settled
       let settledAt: string | null = null
       try {
         const { data: settlement } = await supabase
           .from('monthly_settlements')
           .select('settled_at')
-          .eq('settled_year', jakartaDate.getFullYear())
-          .eq('settled_month', jakartaDate.getMonth() + 1)
+          .eq('settled_year', selectedYear)
+          .eq('settled_month', selectedMonth)
           .single()
         settledAt = settlement?.settled_at || null
         setCurrentSettlement(settlement || null)
@@ -144,7 +155,7 @@ export default function OwnerDashboard() {
       .subscribe()
 
     return () => { clearTimeout(timeout); supabase.removeChannel(channel) }
-  }, [])
+  }, [selectedYear, selectedMonth])
 
   // Fetch selected driver data
   useEffect(() => {
@@ -197,14 +208,37 @@ export default function OwnerDashboard() {
   const driverSurplus = driverIncome - DAILY_TARGET - driverExpenses
   const driverSaldo = driverIncome - driverExpenses
   const driverTargetReached = driverIncome >= DAILY_TARGET
-  const now = new Date()
-  const currentMonthLabel = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+  const selectedMonthLabel = MONTHS.find(m => m.value === selectedMonth)?.label || ''
+  const currentMonthLabel = `${selectedMonthLabel} ${selectedYear}`
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Ringkasan manajemen driver · {currentMonthLabel}</p>
+      <div className="animate-fade-in flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Ringkasan manajemen driver</p>
+        </div>
+        {/* Filter Bulan/Tahun */}
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 pr-8 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 cursor-pointer"
+          >
+            {MONTHS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 pr-8 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 cursor-pointer"
+          >
+            {YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Summary Stats */}
