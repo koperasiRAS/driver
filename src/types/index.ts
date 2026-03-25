@@ -130,3 +130,15 @@ export interface DriverPerformance {
   totalReports: number
   reportsWithIncome: number
 }
+
+// Monthly settlement record (Setor ke BOS)
+export interface MonthlySettlement {
+  id: string
+  settled_year: number
+  settled_month: number
+  total_amount: number
+  settled_by?: string
+  settled_at: string
+  notes?: string
+  created_at: string
+}

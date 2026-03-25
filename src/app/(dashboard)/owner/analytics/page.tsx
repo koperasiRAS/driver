@@ -7,7 +7,8 @@ import { LoadingPage } from '@/components/common/loading-spinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { MONTHLY_TARGET } from '@/lib/constants'
 import { createClient } from '@/lib/supabase'
-import { MonthlyData, DriverPerformance, WeeklyReport, MonthlyReport, AuditLog } from '@/types'
+import { MonthlyData, DriverPerformance, WeeklyReport, MonthlyReport, AuditLog, MonthlySettlement } from '@/types'
+import { createSettlementAction } from '@/app/actions/settlement'
 
 export default function OwnerAnalyticsPage() {
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
@@ -17,6 +18,12 @@ export default function OwnerAnalyticsPage() {
   const [activityLogs, setActivityLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'monthly' | 'logs'>('overview')
+
+  // Setor ke BOS state
+  const [currentSettlement, setCurrentSettlement] = useState<MonthlySettlement | null>(null)
+  const [showSettleDialog, setShowSettleDialog] = useState(false)
+  const [isSettling, setIsSettling] = useState(false)
+  const [settleError, setSettleError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,6 +139,19 @@ export default function OwnerAnalyticsPage() {
         } catch (e) {
           setActivityLogs([])
         }
+
+        // Get current month's settlement
+        try {
+          const { data: settlementData } = await supabase
+            .from('monthly_settlements')
+            .select('*')
+            .eq('settled_year', currentYear)
+            .eq('settled_month', currentMonth + 1)
+            .single()
+          setCurrentSettlement(settlementData || null)
+        } catch {
+          setCurrentSettlement(null)
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -149,6 +169,37 @@ export default function OwnerAnalyticsPage() {
     return () => clearTimeout(timeout)
   }, [])
 
+  const handleSettle = async () => {
+    setIsSettling(true)
+    setSettleError(null)
+
+    const now = new Date()
+    const currentMonthData = monthlyData[monthlyData.length - 1]
+
+    const result = await createSettlementAction({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      totalAmount: currentMonthData?.totalDeposits || 0,
+    })
+
+    setIsSettling(false)
+
+    if (result.success) {
+      setShowSettleDialog(false)
+      // Refresh settlement data
+      const supabase = createClient()
+      const { data: updated } = await supabase
+        .from('monthly_settlements')
+        .select('*')
+        .eq('settled_year', now.getFullYear())
+        .eq('settled_month', now.getMonth() + 1)
+        .single()
+      setCurrentSettlement(updated || null)
+    } else {
+      setSettleError(result.error || 'Gagal menyimpan.')
+    }
+  }
+
   if (loading) {
     return <LoadingPage />
   }
@@ -163,6 +214,7 @@ export default function OwnerAnalyticsPage() {
       'LOGIN': 'Login',
       'LOGOUT': 'Logout',
       'CREATE': 'Membuat',
+      'SETTLE': 'Menyetor ke BOS',
     }
     return labels[action] || action
   }
@@ -282,6 +334,46 @@ export default function OwnerAnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Setor ke BOS Section */}
+          {currentSettlement ? (
+            <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg animate-fade-in">
+              <span className="text-2xl">✅</span>
+              <div className="flex-1">
+                <p className="font-semibold text-emerald-800 dark:text-emerald-300">
+                  Bulan Ini — Lunas
+                </p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                  Total disetor: {formatCurrency(currentSettlement.total_amount)}
+                  {' · '}
+                  {new Date(currentSettlement.settled_at).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                  })}
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
+                LUNAS
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg animate-fade-in">
+              <div className="flex-1">
+                <p className="font-semibold text-slate-800 dark:text-white">Setor ke BOS</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Total setoran bulan ini:{' '}
+                  <span className="font-bold text-teal-600 dark:text-teal-400">
+                    {formatCurrency(monthlyData[monthlyData.length - 1]?.totalDeposits || 0)}
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSettleDialog(true)}
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Setor ke BOS
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -401,6 +493,52 @@ export default function OwnerAnalyticsPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showSettleDialog && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
+              Konfirmasi Setor ke BOS
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+              Anda akan mencatat setoran bulan ini sebesar:
+            </p>
+            <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg mb-4">
+              <p className="text-xl font-bold text-teal-700 dark:text-teal-300 text-center">
+                {formatCurrency(monthlyData[monthlyData.length - 1]?.totalDeposits || 0)}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">
+                {new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            {settleError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mb-3">{settleError}</p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowSettleDialog(false); setSettleError(null) }}
+                disabled={isSettling}
+                className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSettle}
+                disabled={isSettling}
+                className="px-4 py-2 text-sm bg-teal-700 hover:bg-teal-800 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSettling ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Menyimpan…
+                  </>
+                ) : 'Konfirmasi'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
