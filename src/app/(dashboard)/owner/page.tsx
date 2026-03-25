@@ -64,14 +64,16 @@ export default function OwnerDashboard() {
 
       // 1. Check if selected month is settled
       let settledAt: string | null = null
+      let settlementTotalAmount = 0
       try {
         const { data: settlement } = await supabase
           .from('monthly_settlements')
-          .select('settled_at')
+          .select('settled_at, total_amount')
           .eq('settled_year', selectedYear)
           .eq('settled_month', selectedMonth)
           .single()
         settledAt = settlement?.settled_at || null
+        settlementTotalAmount = Number(settlement?.total_amount || 0)
         setCurrentSettlement(settlement || null)
       } catch {
         setCurrentSettlement(null)
@@ -98,12 +100,15 @@ export default function OwnerDashboard() {
         } catch { /* */ }
 
         try {
-          let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
           if (settledAt) {
-            depositsQuery = depositsQuery.gte('reviewed_at', settledAt)
+            // Bulan LUNAS — gunakan nominal dari settlement
+            monthlyDeposits = settlementTotalAmount
+          } else {
+            // Belum settle — query live deposits
+            let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+            const { data: deposits } = await depositsQuery
+            monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
           }
-          const { data: deposits } = await depositsQuery
-          monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
         } catch { /* */ }
 
         setStats({ totalDrivers, todayReports, pendingDeposits, monthlyDeposits, monthlyTarget: MONTHLY_TARGET })
@@ -120,8 +125,9 @@ export default function OwnerDashboard() {
 
           const depositPromises = driverList.map(async (d) => {
             let depsQuery = supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+            // Jika bulan LUNAS, tampilkan deposits sebelum settlement
             if (settledAt) {
-              depsQuery = depsQuery.gte('reviewed_at', settledAt)
+              depsQuery = depsQuery.lt('reviewed_at', settledAt)
             }
             const { data: deps } = await depsQuery
             const total = (deps || []).reduce((sum, dep) => sum + Number(dep.amount), 0)
