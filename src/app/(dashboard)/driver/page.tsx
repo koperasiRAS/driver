@@ -17,6 +17,7 @@ export default function DriverDashboard() {
   const [todayExpenses, setTodayExpenses] = useState(0)
   const [monthlyDeposits, setMonthlyDeposits] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [isCurrentMonthSettled, setIsCurrentMonthSettled] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,6 +78,20 @@ export default function DriverDashboard() {
 
         const depTotal = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
         setMonthlyDeposits(depTotal)
+
+        // Check if current month is settled by owner
+        try {
+          const now = new Date()
+          const { data: settlement } = await supabase
+            .from('monthly_settlements')
+            .select('id')
+            .eq('settled_year', now.getFullYear())
+            .eq('settled_month', now.getMonth() + 1)
+            .single()
+          setIsCurrentMonthSettled(!!settlement)
+        } catch {
+          setIsCurrentMonthSettled(false)
+        }
       }
 
       setLoading(false)
@@ -204,7 +219,15 @@ export default function DriverDashboard() {
       {/* Monthly Progress */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">Progres Setoran Bulanan</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">Progres Setoran Bulanan</CardTitle>
+            {isCurrentMonthSettled && (
+              <Badge variant="success" className="flex items-center gap-1 text-xs">
+                <CheckCircle2 className="w-3 h-3" />
+                Lunas
+              </Badge>
+            )}
+          </div>
           <Target className="w-4 h-4 text-slate-400" />
         </CardHeader>
         <CardContent>

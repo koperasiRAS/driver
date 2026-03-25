@@ -40,6 +40,7 @@ export default function DriverReportPage() {
   const [todayReports, setTodayReports] = useState<DailyReport[]>([])
   const [todayTotal, setTodayTotal] = useState(0)
   const [todayExpenses, setTodayExpenses] = useState(0)
+  const [reportDate, setReportDate] = useState(getTodayDateString())
 
   // Form fields
   const [status, setStatus] = useState<'narik' | 'tidak_narik' | null>(null)
@@ -62,14 +63,13 @@ export default function DriverReportPage() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationStatus, setLocationStatus] = useState<'loading' | 'success' | 'error' | 'denied'>('loading')
 
-  const fetchTodayReports = async (driverId: string) => {
+  const fetchTodayReports = async (driverId: string, date: string) => {
     const supabase = createClient()
-    const today = getTodayDateString()
     const { data } = await supabase
       .from('daily_reports')
       .select('*')
       .eq('driver_id', driverId)
-      .eq('report_date', today)
+      .eq('report_date', date)
       .order('submitted_at', { ascending: false })
 
     const reports = data || []
@@ -79,13 +79,13 @@ export default function DriverReportPage() {
       .reduce((sum, r) => sum + Number(r.daily_income || 0), 0)
     setTodayTotal(total)
 
-    // Fetch today's expenses too
+    // Fetch expenses for the selected date
     try {
       const { data: expenses } = await supabase
         .from('driver_expenses')
         .select('amount')
         .eq('driver_id', driverId)
-        .eq('expense_date', today)
+        .eq('expense_date', date)
       const expTotal = (expenses || []).reduce((sum, e) => sum + Number(e.amount), 0)
       setTodayExpenses(expTotal)
     } catch { /* table may not exist yet */ }
@@ -109,7 +109,7 @@ export default function DriverReportPage() {
 
       if (driverData) {
         setDriver(driverData)
-        await fetchTodayReports(driverData.id)
+        await fetchTodayReports(driverData.id, getTodayDateString())
       }
 
       setLoading(false)
@@ -117,6 +117,14 @@ export default function DriverReportPage() {
 
     fetchDriver()
   }, [router])
+
+  // Re-fetch when reportDate changes
+  useEffect(() => {
+    if (driver) {
+      fetchTodayReports(driver.id, reportDate)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportDate])
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -153,11 +161,10 @@ export default function DriverReportPage() {
 
     try {
       const supabase = createClient()
-      const today = getTodayDateString()
 
       const reportData: Record<string, unknown> = {
         driver_id: driver.id,
-        report_date: today,
+        report_date: reportDate,
         status,
         submitted_at: new Date().toISOString(),
       }
@@ -249,8 +256,8 @@ export default function DriverReportPage() {
         } catch { /* non-critical */ }
       }
 
-      // Refresh today's data
-      await fetchTodayReports(driver.id)
+      // Refresh data for selected date
+      await fetchTodayReports(driver.id, reportDate)
       setSuccess(true)
 
       // Reset form for next input
@@ -288,7 +295,7 @@ export default function DriverReportPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Isi Laporan Harian</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          {new Date(reportDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
       </div>
 
@@ -379,6 +386,25 @@ export default function DriverReportPage() {
                 {error}
               </div>
             )}
+
+            {/* Date Picker */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Tanggal Kerja
+              </label>
+              <input
+                type="date"
+                value={reportDate}
+                max={getTodayDateString()}
+                onChange={(e) => {
+                  setReportDate(e.target.value)
+                }}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-sm"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Pilih tanggal Anda bekerja. Setoran akan masuk ke bulan tanggal tersebut.
+              </p>
+            </div>
 
             <div>
               <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status</p>
@@ -592,7 +618,12 @@ export default function DriverReportPage() {
       {todayReports.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Laporan Hari Ini ({todayReports.length})</CardTitle>
+            <CardTitle>
+              Laporan{' '}
+              {new Date(reportDate + 'T00:00:00').toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+              })} ({todayReports.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
