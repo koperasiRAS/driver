@@ -39,19 +39,36 @@ export default function OwnerDashboard() {
   const [loadingDriver, setLoadingDriver] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [driverDeposits, setDriverDeposits] = useState<DriverDepositInfo[]>([])
+  const [currentSettlement, setCurrentSettlement] = useState<{ settled_at: string } | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
 
-    const fetchStats = async () => {
+    const fetchAll = async () => {
+      const now = new Date()
+      const jakartaDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+      const firstDayOfMonth = new Date(jakartaDate.getFullYear(), jakartaDate.getMonth(), 1)
+        .toISOString()
+        .split('T')[0]
+
+      // 1. Check if current month is settled
+      let settledAt: string | null = null
+      try {
+        const { data: settlement } = await supabase
+          .from('monthly_settlements')
+          .select('settled_at')
+          .eq('settled_year', jakartaDate.getFullYear())
+          .eq('settled_month', jakartaDate.getMonth() + 1)
+          .single()
+        settledAt = settlement?.settled_at || null
+        setCurrentSettlement(settlement || null)
+      } catch {
+        setCurrentSettlement(null)
+      }
+
+      // 2. Fetch stats
       try {
         const today = getTodayDateString()
-        const now = new Date()
-        const jakartaDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
-        const firstDayOfMonth = new Date(jakartaDate.getFullYear(), jakartaDate.getMonth(), 1)
-          .toISOString()
-          .split('T')[0]
-
         let totalDrivers = 0, todayReports = 0, pendingDeposits = 0, monthlyDeposits = 0
 
         try {
@@ -70,33 +87,32 @@ export default function OwnerDashboard() {
         } catch { /* */ }
 
         try {
-          const { data: deposits } = await supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+          let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+          if (settledAt) {
+            depositsQuery = depositsQuery.gte('reviewed_at', settledAt)
+          }
+          const { data: deposits } = await depositsQuery
           monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
         } catch { /* */ }
 
         setStats({ totalDrivers, todayReports, pendingDeposits, monthlyDeposits, monthlyTarget: MONTHLY_TARGET })
       } catch {
         setStats({ totalDrivers: 0, todayReports: 0, pendingDeposits: 0, monthlyDeposits: 0, monthlyTarget: MONTHLY_TARGET })
-      } finally {
-        setLoading(false)
       }
-    }
 
-    // Fetch driver list + per-driver monthly deposits
-    const fetchDrivers = async () => {
+      // 3. Fetch drivers + per-driver deposits
       try {
         const { data } = await supabase.from('drivers').select('id, vehicle_plate, profile:profiles(full_name, email)').eq('is_active', true).order('created_at')
         if (data) {
           const driverList = data as unknown as DriverInfo[]
           setDrivers(driverList)
 
-          // Fetch per-driver monthly deposits
-          const now = new Date()
-          const jakartaDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
-          const firstDay = new Date(jakartaDate.getFullYear(), jakartaDate.getMonth(), 1).toISOString().split('T')[0]
-
           const depositPromises = driverList.map(async (d) => {
-            const { data: deps } = await supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDay)
+            let depsQuery = supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDayOfMonth)
+            if (settledAt) {
+              depsQuery = depsQuery.gte('reviewed_at', settledAt)
+            }
+            const { data: deps } = await depsQuery
             const total = (deps || []).reduce((sum, dep) => sum + Number(dep.amount), 0)
             const pct = Math.round((total / MONTHLY_TARGET) * 100)
             return {
@@ -112,17 +128,19 @@ export default function OwnerDashboard() {
           setDriverDeposits(results)
         }
       } catch { /* */ }
+
+      setLoading(false)
     }
 
     const timeout = setTimeout(() => setLoading(false), 10000)
-    fetchStats()
-    fetchDrivers()
+    fetchAll()
 
     const channel = supabase
       .channel('dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_reports' }, () => fetchStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => fetchStats())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => { fetchStats(); fetchDrivers() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_reports' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, () => fetchAll())
       .subscribe()
 
     return () => { clearTimeout(timeout); supabase.removeChannel(channel) }
