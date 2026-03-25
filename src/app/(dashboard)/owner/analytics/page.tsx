@@ -24,34 +24,77 @@ export default function OwnerAnalyticsPage() {
   const [showSettleDialog, setShowSettleDialog] = useState(false)
   const [isSettling, setIsSettling] = useState(false)
   const [settleError, setSettleError] = useState<string | null>(null)
+  const [lateDepositsAmount, setLateDepositsAmount] = useState(0)
+  const [lateDepositsMonth, setLateDepositsMonth] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const supabase = createClient()
 
-        // Get monthly data
+        // Get monthly data with settlement awareness
         const now = new Date()
         const currentYear = now.getFullYear()
         const currentMonth = now.getMonth()
         const monthlyArr: MonthlyData[] = []
+
+        // Fetch settlements for all months in the 6-month window
+        const settlementMap: Record<string, MonthlySettlement> = {}
+        try {
+          const settlements: MonthlySettlement[] = []
+          for (let i = 5; i >= 0; i--) {
+            const m = new Date(currentYear, currentMonth - i, 1)
+            settlements.push(m as any)
+          }
+          // Bulk fetch settlements
+          const settlementYearMonths = settlements.map((_, i) => {
+            const m = new Date(currentYear, currentMonth - i, 1)
+            return { year: m.getFullYear(), month: m.getMonth() + 1 }
+          })
+
+          for (const ym of settlementYearMonths) {
+            try {
+              const { data: s } = await supabase
+                .from('monthly_settlements')
+                .select('*')
+                .eq('settled_year', ym.year)
+                .eq('settled_month', ym.month)
+                .single()
+              if (s) {
+                settlementMap[`${ym.year}-${ym.month}`] = s
+              }
+            } catch { /* no settlement for this month */ }
+          }
+        } catch { /* ignore */ }
 
         for (let i = 5; i >= 0; i--) {
           const month = new Date(currentYear, currentMonth - i, 1)
           const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
           const firstDay = month.toISOString().split('T')[0]
           const lastDay = new Date(currentYear, currentMonth - i + 1, 0).toISOString().split('T')[0]
+          const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
+          const hasSettlement = !!settlementMap[settlementKey]
 
           try {
-            const { data: deposits } = await supabase
-              .from('deposits')
-              .select('amount')
-              .eq('status', 'approved')
-              .gte('deposit_date', firstDay)
-              .lte('deposit_date', lastDay)
+            if (hasSettlement) {
+              // Month is settled — use settlement amount
+              monthlyArr.push({
+                month: monthStr,
+                totalDeposits: settlementMap[settlementKey].total_amount,
+                target: MONTHLY_TARGET,
+              })
+            } else {
+              // Month not settled — query live approved deposits
+              const { data: deposits } = await supabase
+                .from('deposits')
+                .select('amount')
+                .eq('status', 'approved')
+                .gte('deposit_date', firstDay)
+                .lte('deposit_date', lastDay)
 
-            const totalDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
-            monthlyArr.push({ month: monthStr, totalDeposits, target: MONTHLY_TARGET })
+              const totalDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
+              monthlyArr.push({ month: monthStr, totalDeposits, target: MONTHLY_TARGET })
+            }
           } catch (e) {
             monthlyArr.push({ month: monthStr, totalDeposits: 0, target: MONTHLY_TARGET })
           }
@@ -149,8 +192,32 @@ export default function OwnerAnalyticsPage() {
             .eq('settled_month', currentMonth + 1)
             .single()
           setCurrentSettlement(settlementData || null)
+
+          // Calculate late deposits from previous month (approved after settlement)
+          if (settlementData) {
+            const prevMonthDate = new Date(currentYear, currentMonth - 1, 1)
+            const prevFirstDay = prevMonthDate.toISOString().split('T')[0]
+            const prevLastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+
+            const { data: lateDeposits } = await supabase
+              .from('deposits')
+              .select('amount')
+              .eq('status', 'approved')
+              .gte('deposit_date', prevFirstDay)
+              .lte('deposit_date', prevLastDay)
+              .gte('reviewed_at', settlementData.settled_at)
+
+            const lateTotal = (lateDeposits || []).reduce((s, d) => s + Number(d.amount), 0)
+            setLateDepositsAmount(lateTotal)
+            setLateDepositsMonth(prevMonthDate.toLocaleString('id-ID', { month: 'long' }))
+          } else {
+            setLateDepositsAmount(0)
+            setLateDepositsMonth(null)
+          }
         } catch {
           setCurrentSettlement(null)
+          setLateDepositsAmount(0)
+          setLateDepositsMonth(null)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -175,11 +242,12 @@ export default function OwnerAnalyticsPage() {
 
     const now = new Date()
     const currentMonthData = monthlyData[monthlyData.length - 1]
+    const totalToSettle = (currentMonthData?.totalDeposits || 0) + lateDepositsAmount
 
     const result = await createSettlementAction({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-      totalAmount: currentMonthData?.totalDeposits || 0,
+      totalAmount: totalToSettle,
     })
 
     setIsSettling(false)
@@ -195,6 +263,8 @@ export default function OwnerAnalyticsPage() {
         .eq('settled_month', now.getMonth() + 1)
         .single()
       setCurrentSettlement(updated || null)
+      setLateDepositsAmount(0)
+      setLateDepositsMonth(null)
     } else {
       setSettleError(result.error || 'Gagal menyimpan.')
     }
@@ -362,9 +432,14 @@ export default function OwnerAnalyticsPage() {
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   Total setoran bulan ini:{' '}
                   <span className="font-bold text-teal-600 dark:text-teal-400">
-                    {formatCurrency(monthlyData[monthlyData.length - 1]?.totalDeposits || 0)}
+                    {formatCurrency((monthlyData[monthlyData.length - 1]?.totalDeposits || 0) + lateDepositsAmount)}
                   </span>
                 </p>
+                {lateDepositsAmount > 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    ↑ Termasuk {formatCurrency(lateDepositsAmount)} late deposits dari {lateDepositsMonth}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => setShowSettleDialog(true)}
@@ -507,11 +582,16 @@ export default function OwnerAnalyticsPage() {
             </p>
             <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg mb-4">
               <p className="text-xl font-bold text-teal-700 dark:text-teal-300 text-center">
-                {formatCurrency(monthlyData[monthlyData.length - 1]?.totalDeposits || 0)}
+                {formatCurrency((monthlyData[monthlyData.length - 1]?.totalDeposits || 0) + lateDepositsAmount)}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">
                 {new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
               </p>
+              {lateDepositsAmount > 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 text-center mt-1">
+                  ↑ Termasuk {formatCurrency(lateDepositsAmount)} late deposits
+                </p>
+              )}
             </div>
             {settleError && (
               <p className="text-sm text-red-600 dark:text-red-400 mb-3">{settleError}</p>
