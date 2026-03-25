@@ -197,12 +197,14 @@ export default function OwnerDashboard() {
   const driverSurplus = driverIncome - DAILY_TARGET - driverExpenses
   const driverSaldo = driverIncome - driverExpenses
   const driverTargetReached = driverIncome >= DAILY_TARGET
+  const now = new Date()
+  const currentMonthLabel = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
 
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Ringkasan manajemen driver</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Ringkasan manajemen driver · {currentMonthLabel}</p>
       </div>
 
       {/* Summary Stats */}
@@ -243,7 +245,10 @@ export default function OwnerDashboard() {
         <Card className="animate-fade-in stagger-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Setoran Bulanan</CardTitle>
-            <TrendingUp className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-2 py-0.5 rounded-full">{currentMonthLabel}</span>
+              <TrendingUp className="w-4 h-4 text-slate-400" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(stats.monthlyDeposits)}</div>
@@ -262,6 +267,7 @@ export default function OwnerDashboard() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="w-5 h-5 text-teal-600" />
               Monitoring Setoran Per Driver
+              <span className="text-xs font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-2 py-0.5 rounded-full ml-1">{currentMonthLabel}</span>
               <Badge variant="default" className="ml-auto text-xs">
                 Target: {formatCurrency(MONTHLY_TARGET)}/driver/bulan
               </Badge>
