@@ -1,32 +1,50 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase-admin'
+import { createClient } from '@/lib/supabase'
 
 export async function resetAllDataAction() {
   try {
-    const supabase = createAdminClient()
+    // Authorization: only owner role can reset all data
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, message: 'Unauthorized: Silakan login terlebih dahulu.' }
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!profile || profile.role !== 'owner') {
+      return { success: false, message: 'Unauthorized: Hanya owner yang dapat mengakses fitur ini.' }
+    }
+
+    const adminClient = createAdminClient()
 
     // Delete in order to respect foreign keys
     // 1. Delete driver_expenses
-    await supabase.from('driver_expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    
+    await adminClient.from('driver_expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
     // 2. Delete driver_locations
-    await supabase.from('driver_locations').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    
+    await adminClient.from('driver_locations').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
     // 3. Delete daily_reports
-    await supabase.from('daily_reports').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    
+    await adminClient.from('daily_reports').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
     // 4. Delete deposits
-    await supabase.from('deposits').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    
+    await adminClient.from('deposits').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
     // 5. Delete notifications
-    await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    
+    await adminClient.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+
     // 6. Delete activity_logs
-    await supabase.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await adminClient.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
 
     // 7. Delete drivers (but NOT profiles/auth users — owner remains)
-    await supabase.from('drivers').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await adminClient.from('drivers').delete().neq('id', '00000000-0000-0000-0000-000000000000')
 
     return { success: true, message: 'Semua data berhasil direset. Akun owner tetap tersimpan.' }
   } catch (error) {

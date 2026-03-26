@@ -713,6 +713,7 @@ export default function OwnerDriversPage() {
                     setError(result.error || 'Gagal reset password')
                   } else {
                     setSuccess(`Password ${selectedDriver.profile?.full_name} berhasil direset!`)
+                    setTimeout(() => setSuccess(''), 5000)
                     closeModal()
                   }
                 } catch {

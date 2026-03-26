@@ -61,41 +61,49 @@ export async function getMonthlyData(): Promise<MonthlyData[]> {
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth()
 
-  const monthlyData: MonthlyData[] = []
-
-  // Get last 6 months
+  // Build date range for the last 6 months
+  const monthRanges: { monthString: string; firstDay: string; lastDay: string }[] = []
   for (let i = 5; i >= 0; i--) {
     const month = new Date(currentYear, currentMonth - i, 1)
-    const monthString = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
-    const firstDay = month.toISOString().split('T')[0]
-    const lastDay = new Date(currentYear, currentMonth - i + 1, 0).toISOString().split('T')[0]
-
-    const { data: deposits } = await supabase
-      .from('deposits')
-      .select('amount')
-      .eq('status', 'approved')
-      .gte('deposit_date', firstDay)
-      .lte('deposit_date', lastDay)
-
-    const totalDeposits = (deposits || []).reduce(
-      (sum, deposit) => sum + Number(deposit.amount),
-      0
-    )
-
-    monthlyData.push({
-      month: monthString,
-      totalDeposits,
-      target: MONTHLY_TARGET,
+    monthRanges.push({
+      monthString: month.toLocaleString('id-ID', { month: 'short', year: 'numeric' }),
+      firstDay: month.toISOString().split('T')[0],
+      lastDay: new Date(currentYear, currentMonth - i + 1, 0).toISOString().split('T')[0],
     })
   }
 
-  return monthlyData
+  const firstRange = monthRanges[monthRanges.length - 1]
+  const lastRange = monthRanges[0]
+
+  // Single query: fetch all approved deposits in the 6-month window
+  const { data: allDeposits } = await supabase
+    .from('deposits')
+    .select('amount, deposit_date')
+    .eq('status', 'approved')
+    .gte('deposit_date', firstRange.firstDay)
+    .lte('deposit_date', lastRange.lastDay)
+
+  // Group deposits by month in memory
+  const monthlyTotals = new Map<string, number>()
+  ;(allDeposits || []).forEach((d) => {
+    const monthKey = new Date(d.deposit_date + 'T00:00:00').toLocaleString('id-ID', {
+      month: 'short',
+      year: 'numeric',
+    })
+    monthlyTotals.set(monthKey, (monthlyTotals.get(monthKey) || 0) + Number(d.amount))
+  })
+
+  return monthRanges.map(({ monthString, firstDay, lastDay }) => ({
+    month: monthString,
+    totalDeposits: monthlyTotals.get(monthString) || 0,
+    target: MONTHLY_TARGET,
+  }))
 }
 
 export async function getDriverPerformance(): Promise<DriverPerformance[]> {
   const supabase = createClient()
 
-  // Get all drivers
+  // Get all drivers with their profile
   const { data: drivers } = await supabase
     .from('drivers')
     .select(`
@@ -106,45 +114,41 @@ export async function getDriverPerformance(): Promise<DriverPerformance[]> {
 
   if (!drivers) return []
 
-  const performance: DriverPerformance[] = []
+  // Single query: all approved deposits for all drivers
+  const { data: allDeposits } = await supabase
+    .from('deposits')
+    .select('driver_id, amount')
+    .eq('status', 'approved')
 
-  for (const driver of drivers) {
-    // Get deposits
-    const { data: deposits } = await supabase
-      .from('deposits')
-      .select('amount')
-      .eq('driver_id', driver.id)
-      .eq('status', 'approved')
+  // Single query: all reports for all drivers
+  const { data: allReports } = await supabase
+    .from('daily_reports')
+    .select('driver_id, status, daily_income')
 
-    const totalDeposits = (deposits || []).reduce(
-      (sum, deposit) => sum + Number(deposit.amount),
-      0
-    )
+  // Build lookup maps
+  const depositMap = new Map<string, number>()
+  ;(allDeposits || []).forEach((d) => {
+    depositMap.set(d.driver_id, (depositMap.get(d.driver_id) || 0) + Number(d.amount))
+  })
 
-    // Get reports
-    const { count: totalReports } = await supabase
-      .from('daily_reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('driver_id', driver.id)
+  const reportCountMap = new Map<string, number>()
+  const incomeCountMap = new Map<string, number>()
+  ;(allReports || []).forEach((r) => {
+    reportCountMap.set(r.driver_id, (reportCountMap.get(r.driver_id) || 0) + 1)
+    if (r.status === 'narik' && Number(r.daily_income) > 0) {
+      incomeCountMap.set(r.driver_id, (incomeCountMap.get(r.driver_id) || 0) + 1)
+    }
+  })
 
-    // Get reports with income
-    const { count: reportsWithIncome } = await supabase
-      .from('daily_reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('driver_id', driver.id)
-      .eq('status', 'narik')
-      .gt('daily_income', 0)
-
-    performance.push({
+  return drivers
+    .map((driver) => ({
       driverId: driver.id,
       driverName: (driver.profile as any)?.full_name || 'Unknown',
-      totalDeposits,
-      totalReports: totalReports || 0,
-      reportsWithIncome: reportsWithIncome || 0,
-    })
-  }
-
-  return performance.sort((a, b) => b.totalDeposits - a.totalDeposits)
+      totalDeposits: depositMap.get(driver.id) || 0,
+      totalReports: reportCountMap.get(driver.id) || 0,
+      reportsWithIncome: incomeCountMap.get(driver.id) || 0,
+    }))
+    .sort((a, b) => b.totalDeposits - a.totalDeposits)
 }
 
 export async function getDriverStats(driverId: string): Promise<{
@@ -157,42 +161,31 @@ export async function getDriverStats(driverId: string): Promise<{
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
 
-  // Get all deposits
+  // Single query: all deposits for this driver
   const { data: allDeposits } = await supabase
     .from('deposits')
     .select('amount, deposit_date')
     .eq('driver_id', driverId)
     .eq('status', 'approved')
 
-  const totalDeposits = (allDeposits || []).reduce(
-    (sum, deposit) => sum + Number(deposit.amount),
-    0
-  )
+  // Single query: all reports for this driver (counting done in JS)
+  const { data: allReports } = await supabase
+    .from('daily_reports')
+    .select('report_date')
+    .eq('driver_id', driverId)
 
-  const monthlyDeposits = (allDeposits || [])
+  const allDep = allDeposits || []
+  const allRep = allReports || []
+
+  const totalDeposits = allDep.reduce((sum, d) => sum + Number(d.amount), 0)
+  const monthlyDeposits = allDep
     .filter((d) => d.deposit_date >= firstDayOfMonth)
-    .reduce((sum, deposit) => sum + Number(deposit.amount), 0)
+    .reduce((sum, d) => sum + Number(d.amount), 0)
 
-  // Get all reports
-  const { count: totalReports } = await supabase
-    .from('daily_reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('driver_id', driverId)
+  const totalReports = allRep.length
+  const reportsThisMonth = allRep.filter((r) => r.report_date >= firstDayOfMonth).length
 
-  // Get this month's reports
-  const { count: reportsThisMonth } = await supabase
-    .from('daily_reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('driver_id', driverId)
-    .gte('report_date', firstDayOfMonth)
-
-  return {
-    monthlyDeposits,
-    totalDeposits,
-    totalReports: totalReports || 0,
-    reportsThisMonth: reportsThisMonth || 0,
-  }
+  return { monthlyDeposits, totalDeposits, totalReports, reportsThisMonth }
 }

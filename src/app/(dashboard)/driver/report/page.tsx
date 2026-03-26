@@ -345,7 +345,7 @@ export default function DriverReportPage() {
             </div>
             <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {surplus >= 0 ? 'Kantong Pribadi 💰' : 'Kurang'}
+                {surplus >= 0 ? 'Kantong Pribadi' : 'Kurang'}
               </p>
               <p className={`text-lg font-bold ${surplus >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
                 {formatCurrency(Math.abs(surplus))}

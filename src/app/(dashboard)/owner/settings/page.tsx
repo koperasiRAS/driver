@@ -56,7 +56,7 @@ export default function OwnerSettingsPage() {
               Akun owner tetap tersimpan. Sistem akan kembali seperti baru.
             </p>
             <p className="text-xs text-red-500 mt-2">
-              ⚠️ Tindakan ini TIDAK BISA dibatalkan!
+              Tindakan ini TIDAK BISA dibatalkan!
             </p>
 
             {!showConfirm ? (

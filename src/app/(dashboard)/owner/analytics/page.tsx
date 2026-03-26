@@ -408,7 +408,7 @@ export default function OwnerAnalyticsPage() {
           {/* Setor ke BOS Section */}
           {currentSettlement ? (
             <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg animate-fade-in">
-              <span className="text-2xl">✅</span>
+              <span className="text-2xl text-emerald-600">&#10003;</span>
               <div className="flex-1">
                 <p className="font-semibold text-emerald-800 dark:text-emerald-300">
                   Bulan Ini — Lunas

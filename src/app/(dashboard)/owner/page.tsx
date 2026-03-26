@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingPage } from '@/components/common/loading-spinner'
-import { Users, FileText, DollarSign, Target, TrendingUp, Truck, ChevronDown, Clock, AlertTriangle } from 'lucide-react'
+import { Users, FileText, DollarSign, Target, TrendingUp, Truck, ChevronDown, Clock, AlertTriangle, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency, formatTime, getTodayDateString } from '@/lib/utils'
 import { DAILY_TARGET, MONTHLY_TARGET } from '@/lib/constants'
@@ -124,21 +124,37 @@ export default function OwnerDashboard() {
         setStats({ totalDrivers: 0, todayReports: 0, pendingDeposits: 0, monthlyDeposits: 0, monthlyTarget: MONTHLY_TARGET })
       }
 
-      // 3. Fetch drivers + per-driver deposits
+      // 3. Fetch drivers + all deposits in ONE query (fixes N+1)
       try {
         const { data } = await supabase.from('drivers').select('id, vehicle_plate, profile:profiles(full_name, email)').eq('is_active', true).order('created_at')
         if (data) {
           const driverList = data as unknown as DriverInfo[]
           setDrivers(driverList)
 
-          const depositPromises = driverList.map(async (d) => {
-            let depsQuery = supabase.from('deposits').select('amount').eq('driver_id', d.id).eq('status', 'approved').gte('deposit_date', firstDayOfMonth).lte('deposit_date', lastDayOfMonth)
-            // Jika bulan LUNAS, tampilkan deposits sebelum settlement
-            if (settledAt) {
-              depsQuery = depsQuery.lt('reviewed_at', settledAt)
-            }
-            const { data: deps } = await depsQuery
-            const total = (deps || []).reduce((sum, dep) => sum + Number(dep.amount), 0)
+          // Single query: fetch all deposits for the month across ALL drivers
+          let allDepositsQuery = supabase
+            .from('deposits')
+            .select('driver_id, amount, reviewed_at')
+            .eq('status', 'approved')
+            .gte('deposit_date', firstDayOfMonth)
+            .lte('deposit_date', lastDayOfMonth)
+
+          if (settledAt) {
+            allDepositsQuery = allDepositsQuery.lt('reviewed_at', settledAt)
+          }
+
+          const { data: allDeposits } = await allDepositsQuery
+
+          // Group deposits by driver_id in memory (no extra queries)
+          const depositMap = new Map<string, number>()
+          ;(allDeposits || []).forEach((dep: { driver_id: string; amount: number }) => {
+            const existing = depositMap.get(dep.driver_id) || 0
+            depositMap.set(dep.driver_id, existing + Number(dep.amount))
+          })
+
+          // Build driver deposit info from the grouped data
+          const results = driverList.map((d) => {
+            const total = depositMap.get(d.id) || 0
             const pct = Math.round((total / MONTHLY_TARGET) * 100)
             return {
               driverId: d.id,
@@ -149,7 +165,7 @@ export default function OwnerDashboard() {
               percentage: pct,
             }
           })
-          const results = await Promise.all(depositPromises)
+
           setDriverDeposits(results)
         }
       } catch { /* */ }
@@ -348,7 +364,7 @@ export default function OwnerDashboard() {
                     {/* Warning icon */}
                     {isDanger && <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />}
                     {isWarning && !isDanger && <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />}
-                    {isComplete && <span className="text-lg shrink-0">✅</span>}
+                    {isComplete && <Check className="w-5 h-5 text-emerald-500 shrink-0" />}
 
                     {/* Driver info */}
                     <div className="flex-1 min-w-0">
@@ -386,7 +402,7 @@ export default function OwnerDashboard() {
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                      ⚠️ {driverDeposits.filter(dd => dd.percentage < 50).length} driver belum mencapai 50% target bulan ini
+                      {driverDeposits.filter(dd => dd.percentage < 50).length} driver belum mencapai 50% target bulan ini
                     </p>
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
                       Klik driver di atas untuk melihat detail pendapatan harian
@@ -478,7 +494,7 @@ export default function OwnerDashboard() {
                     : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'
                 }`}>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {driverSurplus >= 0 ? 'Kantong Pribadi 💰' : 'Kurang Target'}
+                    {driverSurplus >= 0 ? 'Kantong Pribadi' : 'Kurang Target'}
                   </p>
                   <p className={`text-lg font-bold ${driverSurplus >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     {formatCurrency(Math.abs(driverSurplus))}

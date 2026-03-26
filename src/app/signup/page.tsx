@@ -2,336 +2,301 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Mail, Lock, User, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, Users } from 'lucide-react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { Loader2, AlertCircle, CheckCircle, User, Users } from 'lucide-react'
+import { signUpAction } from '@/app/actions/auth'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<'driver' | 'owner'>('driver')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
   const [success, setSuccess] = useState(false)
 
   const validatePassword = (pwd: string) => {
-    if (pwd.length < 6) return 'Password must be at least 6 characters'
-    if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter'
-    if (!/[a-z]/.test(pwd)) return 'Password must contain at least one lowercase letter'
-    if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number'
+    if (pwd.length < 6) return 'Password minimal 6 karakter'
+    if (!/[A-Z]/.test(pwd)) return 'Password harus mengandung minimal 1 huruf besar'
+    if (!/[a-z]/.test(pwd)) return 'Password harus mengandung minimal 1 huruf kecil'
+    if (!/[0-9]/.test(pwd)) return 'Password harus mengandung minimal 1 angka'
     return ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
-    // Validate inputs
     if (!fullName.trim()) {
-      setError('Please enter your full name')
-      setLoading(false)
+      setError('Nama lengkap wajib diisi')
       return
     }
 
     if (!email.includes('@')) {
-      setError('Please enter a valid email address')
-      setLoading(false)
+      setError('Alamat email tidak valid')
       return
     }
 
     const pwdError = validatePassword(password)
     if (pwdError) {
       setError(pwdError)
-      setLoading(false)
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
+      setError('Password dan konfirmasi password tidak cocok')
       return
     }
 
+    setLoading(true)
+
     try {
-      // Sign up with Supabase
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: role,
-          },
-          emailRedirectTo: `${window.location.origin}/login`,
-        },
-      })
-
-      if (signUpError) {
-        setError(signUpError.message || 'Failed to create account')
-      } else if (data.user) {
-        // Create profile in database
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              full_name: fullName,
-              email: email,
-              role: role,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          ])
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          // Account created but profile failed - still show success
-        }
-
+      const result = await signUpAction({ email, password, fullName, role })
+      if (!result.success) {
+        setError(result.error || 'Gagal membuat akun')
+      } else {
         setSuccess(true)
-        setTimeout(() => {
-          router.push('/login')
-        }, 3000)
+        setTimeout(() => { router.push('/login') }, 2000)
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.')
-      console.error(err)
+    } catch {
+      setError('Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="login-container">
-      {/* Left Panel - Illustration */}
-      <div className="login-left-panel">
-        <div className="login-illustration-wrapper">
-          <Image
-            src="https://minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com/ccv2%2F2026-03-26%2FMiniMax-M2.7%2F2029882662956577167%2F741e9e971b6eaa01a6811fbe30e3321c912274fb5ac670c6274cd94e72a1b415..png"
-            alt="Delivery Driver"
-            fill
-            className="login-illustration"
-            priority
-            quality={90}
-          />
-        </div>
-        <div className="login-left-content">
-          <h1 className="login-left-title">Join TRANS RAS</h1>
-          <p className="login-left-subtitle">
-            Start managing your fleet today
+    <main className="relative min-h-screen w-full overflow-hidden">
+      {/* Background illustration */}
+      <div
+        className="absolute inset-0 -z-0 bg-no-repeat bg-cover bg-right"
+        style={{ backgroundImage: "url('/illustrations/splitscreen terbaru.png')" }}
+      />
+
+      {/* Full dark overlay */}
+      <div className="absolute inset-0 -z-[1] bg-black/65" />
+
+      {/* Taglines on left background */}
+      <div className="hidden sm:block absolute left-0 top-0 z-20 h-full w-3/5 md:w-1/2 pointer-events-none">
+        <div className="relative h-full flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24">
+          <h2
+            className="text-white font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-tight mb-4 sm:mb-5"
+            style={{ textShadow: '0 4px 24px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.8)' }}
+          >
+            Bergabung dengan
+            <br className="hidden sm:block" />
+            Trans RAS
+          </h2>
+          <p
+            className="text-white/90 font-semibold text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl"
+            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}
+          >
+            Kelola armada &amp; pantau kinerja driver
           </p>
+          <div
+            className="w-20 sm:w-24 md:w-28 h-1.5 md:h-2 bg-gradient-to-r from-violet-400 to-indigo-400 rounded-full mt-6 sm:mt-8 md:mt-10"
+            style={{ boxShadow: '0 0 16px rgba(99,102,241,0.7)' }}
+          />
         </div>
       </div>
 
-      {/* Right Panel - Form */}
-      <div className="login-right-panel">
-        <div className="login-form-wrapper">
-          {/* Header */}
-          <div className="login-form-header">
-            <h2>Create Account</h2>
-            <p>Join our driver management system</p>
-          </div>
+      {/* Form — right side desktop, centered mobile */}
+      <div className="relative z-30 flex min-h-screen w-full items-center justify-end sm:justify-end px-4 py-10 sm:px-8 md:px-12 lg:px-16">
+        <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[400px] lg:max-w-[420px]">
+          <div className="rounded-2xl border border-slate-200/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 sm:p-8 space-y-5">
 
-          {/* Error Alert */}
-          {error && (
-            <div className="login-error-alert">
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            {/* Header */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-teal-700 rounded-xl mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                  <path d="M9 17H7a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" />
+                  <path d="M15 7h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2 2 2 0 0 1 2-2z" />
+                  <line x1="9" x2="15" y1="7" y2="7" />
+                  <rect width="12" height="8" x="6" y="14" rx="2" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Buat Akun</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Daftar untuk memulai mengelola armada
+              </p>
             </div>
-          )}
 
-          {success ? (
-            <>
-              <div className="login-success-alert">
-                <AlertCircle size={16} />
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Success */}
+            {success ? (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                <CheckCircle className="w-5 h-5 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold">Account created successfully!</p>
-                  <p className="text-sm opacity-90">
-                    Check your email to verify your account. Redirecting to login...
-                  </p>
+                  <p className="font-semibold text-sm">Akun berhasil dibuat!</p>
+                  <p className="text-xs opacity-80 mt-0.5">Mengalihkan ke halaman login...</p>
                 </div>
               </div>
-            </>
-          ) : (
-            <form onSubmit={handleSubmit} className="login-form">
-              {/* Full Name */}
-              <div className="login-field">
-                <label htmlFor="fullName">Full Name</label>
-                <div className="login-input-wrapper">
-                  <User size={18} className="login-input-icon" />
-                  <input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="login-input"
-                  />
-                </div>
-              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
 
-              {/* Email */}
-              <div className="login-field">
-                <label htmlFor="email">Email Address</label>
-                <div className="login-input-wrapper">
-                  <Mail size={18} className="login-input-icon" />
+                {/* Full Name */}
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Nama Lengkap
+                  </label>
+                  <div className="relative">
+                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      id="fullName"
+                      type="text"
+                      placeholder="Masukkan nama lengkap"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      disabled={loading}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Alamat Email
+                  </label>
                   <input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="email@contoh.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
                     autoComplete="email"
-                    className="login-input"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50 text-sm"
                   />
                 </div>
-              </div>
 
-              {/* Password */}
-              <div className="login-field">
-                <label htmlFor="password">Password</label>
-                <div className="login-input-wrapper">
-                  <Lock size={18} className="login-input-icon" />
+                {/* Password */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Password
+                  </label>
                   <input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a password"
+                    type="password"
+                    placeholder="Buat password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={loading}
-                    className="login-input"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50 text-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="login-input-button"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
                 </div>
-              </div>
 
-              {/* Confirm Password */}
-              <div className="login-field">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <div className="login-input-wrapper">
-                  <Lock size={18} className="login-input-icon" />
+                {/* Confirm Password */}
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Konfirmasi Password
+                  </label>
                   <input
                     id="confirmPassword"
-                    type={showConfirm ? 'text' : 'password'}
-                    placeholder="Confirm your password"
+                    type="password"
+                    placeholder="Ulangi password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     disabled={loading}
-                    className="login-input"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50 text-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="login-input-button"
-                    tabIndex={-1}
-                  >
-                    {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
                 </div>
-              </div>
 
-              {/* Role Selection */}
-              <div className="login-field">
-                <label>Account Type</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole('driver')}
-                    disabled={loading}
-                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
-                      role === 'driver'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-200'
-                        : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
-                    }`}
-                  >
-                    <User size={16} />
-                    Driver
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('owner')}
-                    disabled={loading}
-                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
-                      role === 'owner'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-200'
-                        : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
-                    }`}
-                  >
-                    <Users size={16} />
-                    Owner
-                  </button>
+                {/* Role Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Tipe Akun
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRole('driver')}
+                      disabled={loading}
+                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
+                        role === 'driver'
+                          ? 'border-teal-600 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-200'
+                          : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      <User size={16} />
+                      Driver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('owner')}
+                      disabled={loading}
+                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
+                        role === 'owner'
+                          ? 'border-teal-600 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-200'
+                          : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      <Users size={16} />
+                      Owner
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Password Requirements */}
-              <div className="login-info-box">
-                <p className="text-xs font-semibold mb-2">Password must contain:</p>
-                <ul className="text-xs space-y-1">
-                  <li className={password.length >= 6 ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}>
-                    ✓ At least 6 characters
-                  </li>
-                  <li className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}>
-                    ✓ One uppercase letter
-                  </li>
-                  <li className={/[a-z]/.test(password) ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}>
-                    ✓ One lowercase letter
-                  </li>
-                  <li className={/[0-9]/.test(password) ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}>
-                    ✓ One number
-                  </li>
-                </ul>
-              </div>
+                {/* Password Requirements */}
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Password harus mengandung:</p>
+                  <ul className="text-xs space-y-1">
+                    <li className={password.length >= 6 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-500'}>
+                      ✓ Minimal 6 karakter
+                    </li>
+                    <li className={/[A-Z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-500'}>
+                      ✓ Minimal 1 huruf besar
+                    </li>
+                    <li className={/[a-z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-500'}>
+                      ✓ Minimal 1 huruf kecil
+                    </li>
+                    <li className={/[0-9]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-500'}>
+                      ✓ Minimal 1 angka
+                    </li>
+                  </ul>
+                </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="login-submit-btn"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={18} className="login-spinner" />
-                    Creating account...
-                  </>
-                ) : (
-                  <>
-                    Create Account
-                    <ArrowRight size={18} />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Membuat akun...
+                    </>
+                  ) : (
+                    'Buat Akun'
+                  )}
+                </button>
+              </form>
+            )}
 
-          {/* Login Link */}
-          <p className="login-signup-prompt">
-            Already have an account?{' '}
-            <Link href="/login" className="login-signup-link">
-              Sign In
-            </Link>
-          </p>
+            {/* Login Link */}
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              Sudah punya akun?{' '}
+              <Link href="/login" className="font-medium text-teal-600 dark:text-teal-400 hover:underline">
+                Masuk
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

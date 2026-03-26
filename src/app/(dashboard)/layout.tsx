@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 
@@ -10,17 +11,17 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    return null
+    redirect('/login')
   }
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!profile) {
-    return null
+    redirect('/login')
   }
 
   return (

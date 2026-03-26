@@ -148,7 +148,7 @@ export default function DriverDashboard() {
             </div>
             <div className={`text-center p-4 rounded-xl border ${surplus >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'}`}>
               <p className={`text-xs font-medium ${surplus >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                {surplus >= 0 ? 'Kantong Pribadi 💰' : 'Kurang Target'}
+                {surplus >= 0 ? 'Kantong Pribadi' : 'Kurang Target'}
               </p>
               <p className={`text-xl font-bold mt-1 ${surplus >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
                 {formatCurrency(Math.abs(surplus))}

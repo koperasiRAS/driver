@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -29,21 +29,31 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Try to get current user first
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect routes
-  const { pathname } = request.nextUrl
+  // If no user, attempt to refresh session (handles expired tokens)
+  let currentUser = user
+  if (!user) {
+    const { data: refreshData } = await supabase.auth.refreshSession()
+    currentUser = refreshData?.user ?? null
+  }
 
   // Public routes
-  if (pathname === '/' || pathname === '/login') {
-    if (user) {
-      // Get user role
+  const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password']
+  const { pathname } = request.nextUrl
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname === route || pathname.startsWith(route + '/')
+  )
+
+  if (isPublicRoute) {
+    if (currentUser) {
+      // Get user role and redirect to appropriate dashboard
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', user.id)
-        .single()
+        .eq('id', currentUser.id)
+        .maybeSingle()
 
       if (profile?.role === 'owner') {
         return NextResponse.redirect(new URL('/owner', request.url))
@@ -54,17 +64,19 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Protected routes
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Protected routes — redirect to login if not authenticated
+  if (!currentUser) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   // Get user profile for role-based access
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
-    .single()
+    .eq('id', currentUser.id)
+    .maybeSingle()
 
   // Owner routes
   if (pathname.startsWith('/owner')) {
