@@ -49,6 +49,18 @@ export default function LoginPage() {
           <stop offset="0%" stopColor="#0ea5e9" />
           <stop offset="100%" stopColor="#0284c7" />
         </linearGradient>
+        <radialGradient id="wheelGrad" cx="50%" cy="35%">
+          <stop offset="0%" stopColor="#2d3748" />
+          <stop offset="60%" stopColor="#1a202c" />
+          <stop offset="100%" stopColor="#0f1419" />
+        </radialGradient>
+        <radialGradient id="tireMatte" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#2a2a2a" />
+          <stop offset="100%" stopColor="#1a1a1a" />
+        </radialGradient>
+        <filter id="wheelShadow">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.2" />
+        </filter>
       </defs>
       
       <rect width="400" height="400" fill="url(#skyGrad)" />
@@ -93,38 +105,65 @@ export default function LoginPage() {
         {/* Door handle */}
         <rect x="120" y="215" width="12" height="4" rx="2" fill="#94a3b8" />
         
-        {/* Wheels */}
-        <g className="wheel-spin">
-          {/* Front wheel */}
-          <circle cx="110" cy="270" r="22" fill="#1e293b" />
-          <circle cx="110" cy="270" r="16" fill="#374151" />
-          <circle cx="110" cy="270" r="4" fill="#64748b" />
-          <line x1="110" y1="248" x2="110" y2="292" stroke="#4b5563" strokeWidth="2" />
-          <line x1="88" y1="270" x2="132" y2="270" stroke="#4b5563" strokeWidth="2" />
-          <line x1="95" y1="255" x2="125" y2="285" stroke="#4b5563" strokeWidth="1.5" />
-          <line x1="125" y1="255" x2="95" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        {/* Wheels - Pixar Style */}
+        {/* Front Wheel */}
+        <g className="wheel-spin" filter="url(#wheelShadow)">
+          {/* Outer tire */}
+          <circle cx="110" cy="270" r="22" fill="url(#tireMatte)" />
+          
+          {/* Rim/Hub shine */}
+          <circle cx="110" cy="270" r="18" fill="url(#wheelGrad)" />
+          <circle cx="110" cy="270" r="10" fill="#1a1a1a" />
+          
+          {/* Center cap shine */}
+          <circle cx="110" cy="270" r="5.5" fill="#3d3d3d" />
+          <circle cx="110" cy="268" r="3" fill="white" opacity="0.3" />
+          
+          {/* Spokes - subtle and clean */}
+          <line x1="110" y1="248" x2="110" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="88" y1="270" x2="132" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="96" y1="256" x2="124" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="124" y1="256" x2="96" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
         </g>
         
-        <g className="wheel-spin">
-          {/* Rear wheel 1 */}
-          <circle cx="230" cy="270" r="22" fill="#1e293b" />
-          <circle cx="230" cy="270" r="16" fill="#374151" />
-          <circle cx="230" cy="270" r="4" fill="#64748b" />
-          <line x1="230" y1="248" x2="230" y2="292" stroke="#4b5563" strokeWidth="2" />
-          <line x1="208" y1="270" x2="252" y2="270" stroke="#4b5563" strokeWidth="2" />
-          <line x1="215" y1="255" x2="245" y2="285" stroke="#4b5563" strokeWidth="1.5" />
-          <line x1="245" y1="255" x2="215" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        {/* Rear Wheel 1 */}
+        <g className="wheel-spin" filter="url(#wheelShadow)">
+          {/* Outer tire */}
+          <circle cx="230" cy="270" r="22" fill="url(#tireMatte)" />
+          
+          {/* Rim/Hub shine */}
+          <circle cx="230" cy="270" r="18" fill="url(#wheelGrad)" />
+          <circle cx="230" cy="270" r="10" fill="#1a1a1a" />
+          
+          {/* Center cap shine */}
+          <circle cx="230" cy="270" r="5.5" fill="#3d3d3d" />
+          <circle cx="230" cy="268" r="3" fill="white" opacity="0.3" />
+          
+          {/* Spokes */}
+          <line x1="230" y1="248" x2="230" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="208" y1="270" x2="252" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="216" y1="256" x2="244" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="244" y1="256" x2="216" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
         </g>
         
-        <g className="wheel-spin">
-          {/* Rear wheel 2 */}
-          <circle cx="280" cy="270" r="22" fill="#1e293b" />
-          <circle cx="280" cy="270" r="16" fill="#374151" />
-          <circle cx="280" cy="270" r="4" fill="#64748b" />
-          <line x1="280" y1="248" x2="280" y2="292" stroke="#4b5563" strokeWidth="2" />
-          <line x1="258" y1="270" x2="302" y2="270" stroke="#4b5563" strokeWidth="2" />
-          <line x1="265" y1="255" x2="295" y2="285" stroke="#4b5563" strokeWidth="1.5" />
-          <line x1="295" y1="255" x2="265" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        {/* Rear Wheel 2 */}
+        <g className="wheel-spin" filter="url(#wheelShadow)">
+          {/* Outer tire */}
+          <circle cx="280" cy="270" r="22" fill="url(#tireMatte)" />
+          
+          {/* Rim/Hub shine */}
+          <circle cx="280" cy="270" r="18" fill="url(#wheelGrad)" />
+          <circle cx="280" cy="270" r="10" fill="#1a1a1a" />
+          
+          {/* Center cap shine */}
+          <circle cx="280" cy="270" r="5.5" fill="#3d3d3d" />
+          <circle cx="280" cy="268" r="3" fill="white" opacity="0.3" />
+          
+          {/* Spokes */}
+          <line x1="280" y1="248" x2="280" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="258" y1="270" x2="302" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="266" y1="256" x2="294" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
+          <line x1="294" y1="256" x2="266" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
         </g>
         
         {/* Exhaust pipe */}
