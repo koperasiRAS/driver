@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
       <div className="login-left-panel">
         <div className="login-illustration-wrapper">
           <Image
-            src="/illustrations/delivery-driver.jpg"
+            src="/illustrations/delivery-driver.png"
             alt="Delivery Driver"
             width={450}
             height={500}
