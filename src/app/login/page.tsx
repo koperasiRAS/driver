@@ -37,192 +37,230 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const DriverIllustration = () => (
+    <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" className="login-illustration">
+      {/* Sky background */}
+      <defs>
+        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#e0f2fe" />
+          <stop offset="100%" stopColor="#bae6fd" />
+        </linearGradient>
+        <linearGradient id="carGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#0ea5e9" />
+          <stop offset="100%" stopColor="#0284c7" />
+        </linearGradient>
+      </defs>
+      
+      <rect width="400" height="400" fill="url(#skyGrad)" />
+      
+      {/* Clouds */}
+      <g opacity="0.6" className="cloud-float">
+        <ellipse cx="80" cy="60" rx="35" ry="20" fill="white" />
+        <ellipse cx="110" cy="65" rx="40" ry="22" fill="white" />
+        <ellipse cx="50" cy="70" rx="30" ry="18" fill="white" />
+      </g>
+      
+      <g opacity="0.4" className="cloud-float cloud-delay-1">
+        <ellipse cx="300" cy="100" rx="38" ry="21" fill="white" />
+        <ellipse cx="335" cy="105" rx="42" ry="23" fill="white" />
+        <ellipse cx="265" cy="115" rx="32" ry="19" fill="white" />
+      </g>
+
+      {/* Road */}
+      <rect x="20" y="280" width="360" height="100" fill="#64748b" />
+      <line x1="20" y1="330" x2="380" y2="330" stroke="white" strokeWidth="2" strokeDasharray="20,10" opacity="0.6" />
+      
+      {/* Truck Body */}
+      <g className="truck-animation">
+        {/* Main cargo area */}
+        <rect x="160" y="200" width="140" height="65" rx="8" fill="url(#carGrad)" />
+        
+        {/* Cargo interior shading */}
+        <rect x="165" y="205" width="130" height="55" rx="6" fill="white" opacity="0.15" />
+        
+        {/* Cabin */}
+        <path d="M 80 220 L 110 180 L 155 180 L 160 220 Z" fill="#0284c7" />
+        <path d="M 85 215 L 155 215 L 155 220 L 85 220 Z" fill="#0ea5e9" />
+        
+        {/* Windshield */}
+        <path d="M 95 190 L 145 190 L 145 210 L 95 210 Z" fill="#60a5fa" opacity="0.4" />
+        <path d="M 100 195 L 140 195 L 140 208 L 100 208 Z" fill="white" opacity="0.2" />
+        
+        {/* Headlights */}
+        <rect x="155" y="210" width="8" height="8" rx="2" fill="#fbbf24" opacity="0.8" />
+        <rect x="155" y="222" width="8" height="6" rx="1.5" fill="#ef4444" opacity="0.8" />
+        
+        {/* Door handle */}
+        <rect x="120" y="215" width="12" height="4" rx="2" fill="#94a3b8" />
+        
+        {/* Wheels */}
+        <g className="wheel-spin">
+          {/* Front wheel */}
+          <circle cx="110" cy="270" r="22" fill="#1e293b" />
+          <circle cx="110" cy="270" r="16" fill="#374151" />
+          <circle cx="110" cy="270" r="4" fill="#64748b" />
+          <line x1="110" y1="248" x2="110" y2="292" stroke="#4b5563" strokeWidth="2" />
+          <line x1="88" y1="270" x2="132" y2="270" stroke="#4b5563" strokeWidth="2" />
+          <line x1="95" y1="255" x2="125" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+          <line x1="125" y1="255" x2="95" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        </g>
+        
+        <g className="wheel-spin">
+          {/* Rear wheel 1 */}
+          <circle cx="230" cy="270" r="22" fill="#1e293b" />
+          <circle cx="230" cy="270" r="16" fill="#374151" />
+          <circle cx="230" cy="270" r="4" fill="#64748b" />
+          <line x1="230" y1="248" x2="230" y2="292" stroke="#4b5563" strokeWidth="2" />
+          <line x1="208" y1="270" x2="252" y2="270" stroke="#4b5563" strokeWidth="2" />
+          <line x1="215" y1="255" x2="245" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+          <line x1="245" y1="255" x2="215" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        </g>
+        
+        <g className="wheel-spin">
+          {/* Rear wheel 2 */}
+          <circle cx="280" cy="270" r="22" fill="#1e293b" />
+          <circle cx="280" cy="270" r="16" fill="#374151" />
+          <circle cx="280" cy="270" r="4" fill="#64748b" />
+          <line x1="280" y1="248" x2="280" y2="292" stroke="#4b5563" strokeWidth="2" />
+          <line x1="258" y1="270" x2="302" y2="270" stroke="#4b5563" strokeWidth="2" />
+          <line x1="265" y1="255" x2="295" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+          <line x1="295" y1="255" x2="265" y2="285" stroke="#4b5563" strokeWidth="1.5" />
+        </g>
+        
+        {/* Exhaust pipe */}
+        <rect x="75" y="265" width="6" height="12" rx="2" fill="#475569" />
+        
+        {/* Exhaust fumes */}
+        <circle cx="78" cy="260" r="4.5" fill="#a3a3a3" opacity="0.6" className="puff-animation puff-1" />
+        <circle cx="78" cy="253" r="3" fill="#a3a3a3" opacity="0.4" className="puff-animation puff-2" />
+      </g>
+
+      {/* Driver figure (simplified) */}
+      <g className="driver-wave">
+        {/* Head */}
+        <circle cx="195" cy="160" r="10" fill="#fbbf24" />
+        
+        {/* Body */}
+        <rect x="191" y="172" width="8" height="16" rx="2" fill="#3b82f6" />
+        
+        {/* Arms */}
+        <line x1="191" y1="176" x2="170" y2="165" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="199" y1="176" x2="225" y2="165" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" className="wave-arm" />
+        
+        {/* Legs */}
+        <line x1="193" y1="188" x2="190" y2="202" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="197" y1="188" x2="200" y2="202" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+
+      {/* Decorative elements */}
+      <g opacity="0.3">
+        <circle cx="320" cy="140" r="3" fill="#0ea5e9" />
+        <circle cx="350" cy="120" r="2" fill="#0ea5e9" />
+        <circle cx="60" cy="280" r="2.5" fill="#0ea5e9" />
+      </g>
+    </svg>
+  )
+
   return (
-    <div className="login-root">
-
-      {/* ── LEFT PANEL (Desktop only) ── */}
-      <div className="login-left">
-        <div className="login-left-bg">
-          {/* Decorative blurred orbs */}
-          <div className="login-orb login-orb-1" />
-          <div className="login-orb login-orb-2" />
-
-          <div className="login-left-content">
-            <h1 className="login-welcome-title">Welcome<br />Back</h1>
-            <p className="login-welcome-sub">
-              Please login to your account and start managing your drivers with ease.
-            </p>
-
-            {/* Animated car */}
-            <div className="login-car-wrapper">
-              <svg
-                width="300"
-                height="130"
-                viewBox="0 0 300 130"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="login-car-svg"
-              >
-                {/* Exhaust puffs */}
-                <circle cx="22" cy="96" r="8" fill="#818cf8" className="login-puff login-puff-1" />
-                <circle cx="12" cy="92" r="5.5" fill="#a5b4fc" className="login-puff login-puff-2" />
-                <circle cx="4"  cy="89" r="4" fill="#c7d2fe" className="login-puff login-puff-3" />
-
-                {/* Car body */}
-                <rect x="20" y="56" width="240" height="40" rx="10" fill="#6366f1" />
-                <rect x="20" y="56" width="240" height="12" rx="5" fill="#4f46e5" />
-
-                {/* Cabin */}
-                <path d="M75 56 L102 20 L198 20 L228 56Z" fill="#818cf8" />
-                <path d="M75 56 L102 20 L198 20 L228 56Z" fill="url(#carWindowGrad)" opacity="0.45" />
-
-                {/* Window shine */}
-                <path d="M106 22 L193 22 L223 55 L80 55Z" fill="white" opacity="0.07" />
-
-                {/* Center pillar */}
-                <line x1="152" y1="20" x2="152" y2="56" stroke="#6366f1" strokeWidth="3.5" />
-
-                {/* Door divider */}
-                <line x1="152" y1="56" x2="152" y2="96" stroke="#4f46e5" strokeWidth="2.5" />
-
-                {/* Door handles */}
-                <rect x="115" y="70" width="22" height="5" rx="2.5" fill="#a5b4fc" />
-                <rect x="178" y="70" width="22" height="5" rx="2.5" fill="#a5b4fc" />
-
-                {/* Headlights */}
-                <rect x="246" y="64" width="14" height="11" rx="3.5" fill="#fef08a" />
-                <rect x="248" y="66" width="10" height="7"  rx="2" fill="#fef9c3" opacity="0.95" />
-
-                {/* Front bumper */}
-                <rect x="246" y="82" width="18" height="11" rx="5" fill="#4f46e5" />
-
-                {/* Rear light */}
-                <rect x="20" y="64" width="11" height="11" rx="3.5" fill="#f87171" />
-
-                {/* Exhaust pipe */}
-                <rect x="20" y="90" width="14" height="6" rx="3" fill="#475569" />
-
-                {/* Wheel arches */}
-                <circle cx="80"  cy="96" r="24" fill="#1e1b4b" />
-                <circle cx="200" cy="96" r="24" fill="#1e1b4b" />
-
-                {/* Wheel 1 */}
-                <g className="login-wheel-spin" style={{ transformOrigin: '80px 96px' }}>
-                  <circle cx="80"  cy="96" r="19" fill="#374151" />
-                  <circle cx="80"  cy="96" r="13" fill="#6b7280" />
-                  <circle cx="80"  cy="96" r="5.5" fill="#9ca3af" />
-                  <line x1="80"  y1="77" x2="80"  y2="115" stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="61"  y1="96" x2="99"  y2="96"  stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="67"  y1="82" x2="93"  y2="110" stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="93"  y1="82" x2="67"  y2="110" stroke="#4b5563" strokeWidth="2.5" />
-                </g>
-
-                {/* Wheel 2 */}
-                <g className="login-wheel-spin" style={{ transformOrigin: '200px 96px' }}>
-                  <circle cx="200" cy="96" r="19" fill="#374151" />
-                  <circle cx="200" cy="96" r="13" fill="#6b7280" />
-                  <circle cx="200" cy="96" r="5.5" fill="#9ca3af" />
-                  <line x1="200" y1="77" x2="200" y2="115" stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="181" y1="96" x2="219" y2="96"  stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="187" y1="82" x2="213" y2="110" stroke="#4b5563" strokeWidth="2.5" />
-                  <line x1="213" y1="82" x2="187" y2="110" stroke="#4b5563" strokeWidth="2.5" />
-                </g>
-
-                <defs>
-                  <linearGradient id="carWindowGrad" x1="152" y1="20" x2="152" y2="56" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#e0e7ff" stopOpacity="0.6" />
-                    <stop offset="1" stopColor="#e0e7ff" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-          </div>
-
-          {/* Page indicator dots */}
-          <div className="login-dots">
-            <div className="login-dot login-dot-passive" />
-            <div className="login-dot login-dot-passive" />
-            <div className="login-dot login-dot-active" />
-          </div>
+    <div className="login-container">
+      {/* Left Panel - Illustration (Hidden on mobile) */}
+      <div className="login-left-panel">
+        <div className="login-illustration-wrapper">
+          <DriverIllustration />
+        </div>
+        <div className="login-left-content">
+          <h1 className="login-left-title">Welcome Back</h1>
+          <p className="login-left-subtitle">
+            Manage your drivers and fleet with ease
+          </p>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL (Form — always visible) ── */}
-      <div className="login-right">
-        <div className="login-form-container">
-
-          {/* Mobile: logo + branding */}
-          <div className="login-mobile-logo">
-            <div className="login-mobile-logo-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="8" width="20" height="10" rx="3" fill="white" />
-                <path d="M6 8 L8.5 3 H15.5 L18 8Z" fill="white" fillOpacity="0.85" />
-                <circle cx="7"  cy="18" r="2.5" fill="white" />
-                <circle cx="17" cy="18" r="2.5" fill="white" />
+      {/* Right Panel - Form */}
+      <div className="login-right-panel">
+        <div className="login-form-wrapper">
+          {/* Logo - Mobile only */}
+          <div className="login-logo-mobile">
+            <div className="login-logo-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="8" width="20" height="10" rx="3" fill="currentColor" />
+                <path d="M6 8 L8.5 3 H15.5 L18 8Z" fill="currentColor" opacity="0.8" />
+                <circle cx="7" cy="18" r="2.5" fill="currentColor" />
+                <circle cx="17" cy="18" r="2.5" fill="currentColor" />
               </svg>
             </div>
-            <span className="login-mobile-logo-text">TRANS RAS</span>
-            <p className="login-mobile-logo-sub">Sistem Manajemen Driver</p>
+            <div>
+              <div className="login-logo-text">TRANS RAS</div>
+              <div className="login-logo-subtitle">Driver Management</div>
+            </div>
           </div>
 
-          {/* Form header */}
+          {/* Form Header */}
           <div className="login-form-header">
-            <h2 className="login-form-title">Sign in</h2>
-            <p className="login-form-subtitle">Sign in to access your account</p>
+            <h2>Sign In</h2>
+            <p>Access your driver management account</p>
           </div>
 
-          {/* Error message */}
+          {/* Error Alert */}
           {error && (
-            <div className="login-error">
-              <AlertCircle className="login-error-icon" />
+            <div className="login-error-alert">
+              <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Fields */}
-          <form onSubmit={handleSubmit} className="login-fields">
-
-            <div className="login-field-wrap">
-              <Mail className="login-field-icon" />
-              <input
-                id="email"
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="login-input"
-              />
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="login-form">
+            {/* Email Field */}
+            <div className="login-field">
+              <label htmlFor="email">Email Address</label>
+              <div className="login-input-wrapper">
+                <Mail size={18} className="login-input-icon" />
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="login-input"
+                />
+              </div>
             </div>
 
-            <div className="login-field-wrap">
-              <Lock className="login-field-icon" />
-              <input
-                id="password"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="login-input"
-              />
+            {/* Password Field */}
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <div className="login-input-wrapper">
+                <Lock size={18} className="login-input-icon" />
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="login-input"
+                />
+              </div>
             </div>
 
-            <div className="login-row-between">
-              <label className="login-checkbox-label">
+            {/* Remember & Forgot */}
+            <div className="login-options">
+              <label className="login-remember">
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="login-checkbox"
                 />
-                Remember me
+                <span>Remember me</span>
               </label>
               <a href="#" className="login-forgot-link">Forgot password?</a>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -230,7 +268,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="login-spin-icon" />
+                  <Loader2 size={18} className="login-spinner" />
                   Signing in...
                 </>
               ) : (
@@ -239,359 +277,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="login-signup-link">
+          {/* Signup Link */}
+          <p className="login-signup-prompt">
             Don&apos;t have an account?{' '}
-            <span>Sign up</span>
+            <a href="#" className="login-signup-link">Create one</a>
           </p>
         </div>
       </div>
-
-      <style>{`
-        .login-root {
-          display: flex;
-          min-height: 100vh;
-          width: 100%;
-        }
-
-        /* ── LEFT PANEL ── */
-        .login-left {
-          display: none;
-          width: 50%;
-          flex-shrink: 0;
-        }
-
-        @media (min-width: 1024px) {
-          .login-left { display: flex; }
-        }
-
-        .login-left-bg {
-          position: relative;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%);
-          background-size: 200% 200%;
-          animation: loginGradient 7s ease infinite;
-        }
-
-        @keyframes loginGradient {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .login-orb {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(60px);
-          pointer-events: none;
-        }
-        .login-orb-1 {
-          width: 300px; height: 300px;
-          background: rgba(99, 102, 241, 0.15);
-          top: -80px; left: -80px;
-        }
-        .login-orb-2 {
-          width: 400px; height: 400px;
-          background: rgba(139, 92, 246, 0.12);
-          bottom: -120px; right: -100px;
-        }
-
-        .login-left-content {
-          position: relative;
-          z-index: 2;
-          text-align: center;
-          padding: 0 48px;
-          width: 100%;
-          max-width: 520px;
-        }
-
-        .login-welcome-title {
-          font-size: 64px;
-          font-weight: 800;
-          color: #ffffff;
-          line-height: 1.05;
-          margin: 0 0 16px;
-          letter-spacing: -1px;
-        }
-
-        .login-welcome-sub {
-          font-size: 16px;
-          color: rgba(255,255,255,0.55);
-          margin: 0 0 56px;
-          line-height: 1.6;
-        }
-
-        .login-car-wrapper {
-          display: flex;
-          justify-content: center;
-          overflow: visible;
-          padding: 8px 0;
-        }
-
-        .login-car-svg {
-          animation: carDriveRight 4s ease-in-out infinite alternate;
-        }
-
-        @keyframes carDriveRight {
-          0%   { transform: translateX(-130px); }
-          100% { transform: translateX(180px); }
-        }
-
-        .login-wheel-spin {
-          animation: wheelSpinFast 0.45s linear infinite;
-          transform-origin: center;
-        }
-
-        @keyframes wheelSpinFast {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-
-        .login-puff { opacity: 0; transform-origin: center; }
-        .login-puff-1 { animation: puffOut 1.4s ease-out infinite 0s; }
-        .login-puff-2 { animation: puffOut 1.4s ease-out infinite 0.35s; }
-        .login-puff-3 { animation: puffOut 1.4s ease-out infinite 0.7s; }
-
-        @keyframes puffOut {
-          0%   { opacity: 0.75; transform: translateX(0) scale(1); }
-          100% { opacity: 0;    transform: translateX(-45px) scale(1.8); }
-        }
-
-        .login-dots {
-          position: absolute;
-          bottom: 36px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .login-dot {
-          border-radius: 99px;
-          background: rgba(255,255,255,0.28);
-          transition: all 0.3s;
-        }
-
-        .login-dot-passive { width: 8px;  height: 8px; }
-        .login-dot-active   { width: 20px; height: 8px; background: #818cf8; animation: dotPulseAnim 1.4s ease-in-out infinite; }
-
-        @keyframes dotPulseAnim {
-          0%, 100% { opacity: 0.7; transform: scaleX(1); }
-          50%       { opacity: 1;   transform: scaleX(1.1); }
-        }
-
-        /* ── RIGHT PANEL ── */
-        .login-right {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 32px 24px;
-          background: #ffffff;
-          min-height: 100vh;
-        }
-
-        @media (min-width: 1024px) {
-          .login-right { width: 50%; }
-        }
-
-        .login-form-container {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        /* Mobile logo */
-        .login-mobile-logo {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 40px;
-        }
-
-        @media (min-width: 1024px) {
-          .login-mobile-logo { display: none; }
-        }
-
-        .login-mobile-logo-icon {
-          width: 56px; height: 56px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #6366f1, #7c3aed);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 12px;
-          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
-        }
-
-        .login-mobile-logo-text {
-          font-size: 20px;
-          font-weight: 800;
-          color: #0f172a;
-          letter-spacing: -0.5px;
-        }
-
-        .login-mobile-logo-sub {
-          font-size: 13px;
-          color: #64748b;
-          margin: 4px 0 0;
-        }
-
-        /* Form header */
-        .login-form-header { margin-bottom: 28px; }
-
-        .login-form-title {
-          font-size: 26px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 6px;
-        }
-
-        .login-form-subtitle {
-          font-size: 14px;
-          color: #64748b;
-          margin: 0;
-        }
-
-        /* Error */
-        .login-error {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 14px;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 10px;
-          color: #dc2626;
-          font-size: 14px;
-          margin-bottom: 20px;
-        }
-
-        .login-error-icon { width: 16px; height: 16px; flex-shrink: 0; }
-
-        /* Fields */
-        .login-fields { display: flex; flex-direction: column; gap: 18px; }
-
-        .login-field-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .login-field-icon {
-          position: absolute;
-          left: 14px;
-          width: 18px;
-          height: 18px;
-          color: #94a3b8;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .login-input {
-          width: 100%;
-          height: 48px;
-          padding: 0 16px 0 46px;
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          font-size: 14px;
-          color: #0f172a;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-          box-sizing: border-box;
-        }
-
-        .login-input::placeholder { color: #94a3b8; }
-
-        .login-input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-        }
-
-        .login-row-between {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .login-checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: #475569;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .login-checkbox {
-          width: 16px; height: 16px;
-          border-radius: 4px;
-          border: 1.5px solid #cbd5e1;
-          accent-color: #6366f1;
-          cursor: pointer;
-        }
-
-        .login-forgot-link {
-          font-size: 14px;
-          font-weight: 500;
-          color: #6366f1;
-          text-decoration: none;
-          transition: color 0.15s;
-        }
-
-        .login-forgot-link:hover { color: #4f46e5; }
-
-        .login-submit-btn {
-          width: 100%;
-          height: 48px;
-          background: #0d9488;
-          color: #ffffff;
-          border: none;
-          border-radius: 10px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          transition: background 0.15s, transform 0.1s;
-          margin-top: 4px;
-        }
-
-        .login-submit-btn:hover:not(:disabled) { background: #0f766e; }
-        .login-submit-btn:active:not(:disabled) { transform: scale(0.99); }
-        .login-submit-btn:disabled { background: #5eead4; cursor: not-allowed; }
-
-        .login-spin-icon { animation: spinIcon 0.7s linear infinite; }
-
-        @keyframes spinIcon {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-
-        .login-signup-link {
-          text-align: center;
-          font-size: 14px;
-          color: #64748b;
-          margin-top: 24px;
-        }
-
-        .login-signup-link span {
-          color: #6366f1;
-          font-weight: 500;
-          cursor: pointer;
-          transition: color 0.15s;
-        }
-
-        .login-signup-link span:hover { color: #4f46e5; }
-      `}</style>
     </div>
   )
 }
