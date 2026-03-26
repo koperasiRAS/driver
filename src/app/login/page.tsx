@@ -38,157 +38,152 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+    <div className="login-root">
 
-      {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex flex-col items-center justify-center
-        bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950
-        animate-gradient relative overflow-hidden">
+      {/* ── LEFT PANEL (Desktop only) ── */}
+      <div className="login-left">
+        <div className="login-left-bg">
+          {/* Decorative blurred orbs */}
+          <div className="login-orb login-orb-1" />
+          <div className="login-orb login-orb-2" />
 
-        {/* decorative circles */}
-        <div className="absolute top-16 left-16 w-40 h-40 rounded-full bg-indigo-500/10 blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-56 h-56 rounded-full bg-purple-500/10 blur-3xl" />
+          <div className="login-left-content">
+            <h1 className="login-welcome-title">Welcome<br />Back</h1>
+            <p className="login-welcome-sub">
+              Please login to your account and start managing your drivers with ease.
+            </p>
 
-        <div className="relative z-10 text-center px-12 max-w-md">
-          <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-            Welcome<br />Back
-          </h1>
-          <p className="text-white/60 text-base mb-20">
-            Please login to your account and start managing your drivers with ease.
-          </p>
+            {/* Animated car */}
+            <div className="login-car-wrapper">
+              <svg
+                width="300"
+                height="130"
+                viewBox="0 0 300 130"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="login-car-svg"
+              >
+                {/* Exhaust puffs */}
+                <circle cx="22" cy="96" r="8" fill="#818cf8" className="login-puff login-puff-1" />
+                <circle cx="12" cy="92" r="5.5" fill="#a5b4fc" className="login-puff login-puff-2" />
+                <circle cx="4"  cy="89" r="4" fill="#c7d2fe" className="login-puff login-puff-3" />
 
-          {/* Animated car SVG */}
-          <div className="flex justify-center overflow-hidden">
-            <svg
-              width="280"
-              height="120"
-              viewBox="0 0 280 120"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="animate-car-drive"
-            >
-              {/* Exhaust puffs */}
-              <circle cx="28" cy="88" r="7" fill="#818cf8" className="animate-puff" style={{ animationDelay: '0s' }} />
-              <circle cx="18" cy="85" r="5" fill="#a5b4fc" className="animate-puff" style={{ animationDelay: '0.4s' }} />
-              <circle cx="10" cy="83" r="3.5" fill="#c7d2fe" className="animate-puff" style={{ animationDelay: '0.8s' }} />
+                {/* Car body */}
+                <rect x="20" y="56" width="240" height="40" rx="10" fill="#6366f1" />
+                <rect x="20" y="56" width="240" height="12" rx="5" fill="#4f46e5" />
 
-              {/* Car body */}
-              <rect x="20" y="50" width="220" height="38" rx="8" fill="#6366f1" />
-              <rect x="20" y="50" width="220" height="10" rx="4" fill="#4f46e5" />
+                {/* Cabin */}
+                <path d="M75 56 L102 20 L198 20 L228 56Z" fill="#818cf8" />
+                <path d="M75 56 L102 20 L198 20 L228 56Z" fill="url(#carWindowGrad)" opacity="0.45" />
 
-              {/* Cabin / roof */}
-              <path d="M70 50 L95 18 L185 18 L215 50Z" fill="#818cf8" />
-              <path d="M70 50 L95 18 L185 18 L215 50Z" fill="url(#windowGrad)" opacity="0.5" />
+                {/* Window shine */}
+                <path d="M106 22 L193 22 L223 55 L80 55Z" fill="white" opacity="0.07" />
 
-              {/* Window shine */}
-              <path d="M99 20 L183 20 L210 49 L74 49Z" fill="white" opacity="0.08" />
+                {/* Center pillar */}
+                <line x1="152" y1="20" x2="152" y2="56" stroke="#6366f1" strokeWidth="3.5" />
 
-              {/* Front windshield divider */}
-              <line x1="143" y1="18" x2="143" y2="50" stroke="#6366f1" strokeWidth="3" />
+                {/* Door divider */}
+                <line x1="152" y1="56" x2="152" y2="96" stroke="#4f46e5" strokeWidth="2.5" />
 
-              {/* Door line */}
-              <line x1="143" y1="50" x2="143" y2="88" stroke="#4f46e5" strokeWidth="2" />
+                {/* Door handles */}
+                <rect x="115" y="70" width="22" height="5" rx="2.5" fill="#a5b4fc" />
+                <rect x="178" y="70" width="22" height="5" rx="2.5" fill="#a5b4fc" />
 
-              {/* Door handle */}
-              <rect x="110" y="63" width="20" height="5" rx="2.5" fill="#a5b4fc" />
-              <rect x="165" y="63" width="20" height="5" rx="2.5" fill="#a5b4fc" />
+                {/* Headlights */}
+                <rect x="246" y="64" width="14" height="11" rx="3.5" fill="#fef08a" />
+                <rect x="248" y="66" width="10" height="7"  rx="2" fill="#fef9c3" opacity="0.95" />
 
-              {/* Headlight */}
-              <rect x="226" y="57" width="14" height="10" rx="3" fill="#fef08a" />
-              <rect x="228" y="59" width="10" height="6" rx="2" fill="#fef9c3" opacity="0.9" />
+                {/* Front bumper */}
+                <rect x="246" y="82" width="18" height="11" rx="5" fill="#4f46e5" />
 
-              {/* Front bumper */}
-              <rect x="225" y="74" width="18" height="10" rx="4" fill="#4f46e5" />
+                {/* Rear light */}
+                <rect x="20" y="64" width="11" height="11" rx="3.5" fill="#f87171" />
 
-              {/* Rear light */}
-              <rect x="20" y="57" width="10" height="10" rx="3" fill="#f87171" />
+                {/* Exhaust pipe */}
+                <rect x="20" y="90" width="14" height="6" rx="3" fill="#475569" />
 
-              {/* Tail pipe */}
-              <rect x="20" y="82" width="12" height="5" rx="2" fill="#475569" />
+                {/* Wheel arches */}
+                <circle cx="80"  cy="96" r="24" fill="#1e1b4b" />
+                <circle cx="200" cy="96" r="24" fill="#1e1b4b" />
 
-              {/* Wheel wells */}
-              <circle cx="75" cy="88" r="22" fill="#1e1b4b" />
-              <circle cx="185" cy="88" r="22" fill="#1e1b4b" />
+                {/* Wheel 1 */}
+                <g className="login-wheel-spin" style={{ transformOrigin: '80px 96px' }}>
+                  <circle cx="80"  cy="96" r="19" fill="#374151" />
+                  <circle cx="80"  cy="96" r="13" fill="#6b7280" />
+                  <circle cx="80"  cy="96" r="5.5" fill="#9ca3af" />
+                  <line x1="80"  y1="77" x2="80"  y2="115" stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="61"  y1="96" x2="99"  y2="96"  stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="67"  y1="82" x2="93"  y2="110" stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="93"  y1="82" x2="67"  y2="110" stroke="#4b5563" strokeWidth="2.5" />
+                </g>
 
-              {/* Wheel 1 */}
-              <g className="animate-wheel-spin" style={{ transformOrigin: '75px 88px' }}>
-                <circle cx="75" cy="88" r="18" fill="#374151" />
-                <circle cx="75" cy="88" r="12" fill="#6b7280" />
-                <circle cx="75" cy="88" r="5"  fill="#9ca3af" />
-                {/* Spokes */}
-                <line x1="75" y1="70" x2="75" y2="106" stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="57" y1="88" x2="93" y2="88"  stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="62" y1="75" x2="88" y2="101" stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="88" y1="75" x2="62" y2="101" stroke="#4b5563" strokeWidth="2.5" />
-              </g>
+                {/* Wheel 2 */}
+                <g className="login-wheel-spin" style={{ transformOrigin: '200px 96px' }}>
+                  <circle cx="200" cy="96" r="19" fill="#374151" />
+                  <circle cx="200" cy="96" r="13" fill="#6b7280" />
+                  <circle cx="200" cy="96" r="5.5" fill="#9ca3af" />
+                  <line x1="200" y1="77" x2="200" y2="115" stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="181" y1="96" x2="219" y2="96"  stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="187" y1="82" x2="213" y2="110" stroke="#4b5563" strokeWidth="2.5" />
+                  <line x1="213" y1="82" x2="187" y2="110" stroke="#4b5563" strokeWidth="2.5" />
+                </g>
 
-              {/* Wheel 2 */}
-              <g className="animate-wheel-spin" style={{ transformOrigin: '185px 88px' }}>
-                <circle cx="185" cy="88" r="18" fill="#374151" />
-                <circle cx="185" cy="88" r="12" fill="#6b7280" />
-                <circle cx="185" cy="88" r="5"  fill="#9ca3af" />
-                {/* Spokes */}
-                <line x1="185" y1="70" x2="185" y2="106" stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="167" y1="88" x2="203" y2="88"  stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="172" y1="75" x2="198" y2="101" stroke="#4b5563" strokeWidth="2.5" />
-                <line x1="198" y1="75" x2="172" y2="101" stroke="#4b5563" strokeWidth="2.5" />
-              </g>
-
-              <defs>
-                <linearGradient id="windowGrad" x1="143" y1="18" x2="143" y2="50" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#e0e7ff" stopOpacity="0.6" />
-                  <stop offset="1" stopColor="#e0e7ff" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-            </svg>
+                <defs>
+                  <linearGradient id="carWindowGrad" x1="152" y1="20" x2="152" y2="56" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#e0e7ff" stopOpacity="0.6" />
+                    <stop offset="1" stopColor="#e0e7ff" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
           </div>
-        </div>
 
-        {/* Bottom dots */}
-        <div className="absolute bottom-8 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-white/30" />
-          <div className="w-2 h-2 rounded-full bg-white/30" />
-          <div className="w-5 h-2 rounded-full bg-indigo-400 animate-dot-pulse" />
+          {/* Page indicator dots */}
+          <div className="login-dots">
+            <div className="login-dot login-dot-passive" />
+            <div className="login-dot login-dot-passive" />
+            <div className="login-dot login-dot-active" />
+          </div>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL (FORM) ── */}
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
-        <div className="w-full max-w-sm">
+      {/* ── RIGHT PANEL (Form — always visible) ── */}
+      <div className="login-right">
+        <div className="login-form-container">
 
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg mb-4">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          {/* Mobile: logo + branding */}
+          <div className="login-mobile-logo">
+            <div className="login-mobile-logo-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="8" width="20" height="10" rx="3" fill="white" />
-                <path d="M6 8 L8.5 3 H15.5 L18 8Z" fill="white" fillOpacity="0.8" />
-                <circle cx="7" cy="18" r="2.5" fill="white" />
+                <path d="M6 8 L8.5 3 H15.5 L18 8Z" fill="white" fillOpacity="0.85" />
+                <circle cx="7"  cy="18" r="2.5" fill="white" />
                 <circle cx="17" cy="18" r="2.5" fill="white" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">TRANS RAS</h1>
-            <p className="text-slate-500 text-sm mt-1">Sistem Manajemen Driver</p>
+            <span className="login-mobile-logo-text">TRANS RAS</span>
+            <p className="login-mobile-logo-sub">Sistem Manajemen Driver</p>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Sign in</h2>
-            <p className="text-slate-500 text-sm mt-1">Sign in to access your account</p>
+          {/* Form header */}
+          <div className="login-form-header">
+            <h2 className="login-form-title">Sign in</h2>
+            <p className="login-form-subtitle">Sign in to access your account</p>
           </div>
 
+          {/* Error message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
+            <div className="login-error">
+              <AlertCircle className="login-error-icon" />
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Fields */}
+          <form onSubmit={handleSubmit} className="login-fields">
 
-            {/* Email */}
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <Mail className="w-4 h-4" />
-              </div>
+            <div className="login-field-wrap">
+              <Mail className="login-field-icon" />
               <input
                 id="email"
                 type="email"
@@ -196,18 +191,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full h-11 pl-10 pr-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg
-                  text-sm text-slate-900 dark:text-white placeholder:text-slate-400
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                  transition-all duration-150"
+                autoComplete="email"
+                className="login-input"
               />
             </div>
 
-            {/* Password */}
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <Lock className="w-4 h-4" />
-              </div>
+            <div className="login-field-wrap">
+              <Lock className="login-field-icon" />
               <input
                 id="password"
                 type="password"
@@ -215,39 +205,32 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full h-11 pl-10 pr-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg
-                  text-sm text-slate-900 dark:text-white placeholder:text-slate-400
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                  transition-all duration-150"
+                autoComplete="current-password"
+                className="login-input"
               />
             </div>
 
-            {/* Remember + Forgot */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer">
+            <div className="login-row-between">
+              <label className="login-checkbox-label">
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
+                  className="login-checkbox"
                 />
                 Remember me
               </label>
-              <a href="#" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-                Forgot password?
-              </a>
+              <a href="#" className="login-forgot-link">Forgot password?</a>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-400 text-white font-medium rounded-lg
-                transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer"
+              className="login-submit-btn"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="login-spin-icon" />
                   Signing in...
                 </>
               ) : (
@@ -256,16 +239,359 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
+          <p className="login-signup-link">
             Don&apos;t have an account?{' '}
-            <span className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium cursor-pointer">
-              Sign up
-            </span>
+            <span>Sign up</span>
           </p>
-
         </div>
       </div>
 
+      <style>{`
+        .login-root {
+          display: flex;
+          min-height: 100vh;
+          width: 100%;
+        }
+
+        /* ── LEFT PANEL ── */
+        .login-left {
+          display: none;
+          width: 50%;
+          flex-shrink: 0;
+        }
+
+        @media (min-width: 1024px) {
+          .login-left { display: flex; }
+        }
+
+        .login-left-bg {
+          position: relative;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%);
+          background-size: 200% 200%;
+          animation: loginGradient 7s ease infinite;
+        }
+
+        @keyframes loginGradient {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .login-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(60px);
+          pointer-events: none;
+        }
+        .login-orb-1 {
+          width: 300px; height: 300px;
+          background: rgba(99, 102, 241, 0.15);
+          top: -80px; left: -80px;
+        }
+        .login-orb-2 {
+          width: 400px; height: 400px;
+          background: rgba(139, 92, 246, 0.12);
+          bottom: -120px; right: -100px;
+        }
+
+        .login-left-content {
+          position: relative;
+          z-index: 2;
+          text-align: center;
+          padding: 0 48px;
+          width: 100%;
+          max-width: 520px;
+        }
+
+        .login-welcome-title {
+          font-size: 64px;
+          font-weight: 800;
+          color: #ffffff;
+          line-height: 1.05;
+          margin: 0 0 16px;
+          letter-spacing: -1px;
+        }
+
+        .login-welcome-sub {
+          font-size: 16px;
+          color: rgba(255,255,255,0.55);
+          margin: 0 0 56px;
+          line-height: 1.6;
+        }
+
+        .login-car-wrapper {
+          display: flex;
+          justify-content: center;
+          overflow: visible;
+          padding: 8px 0;
+        }
+
+        .login-car-svg {
+          animation: carDriveRight 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes carDriveRight {
+          0%   { transform: translateX(-130px); }
+          100% { transform: translateX(180px); }
+        }
+
+        .login-wheel-spin {
+          animation: wheelSpinFast 0.45s linear infinite;
+          transform-origin: center;
+        }
+
+        @keyframes wheelSpinFast {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+
+        .login-puff { opacity: 0; transform-origin: center; }
+        .login-puff-1 { animation: puffOut 1.4s ease-out infinite 0s; }
+        .login-puff-2 { animation: puffOut 1.4s ease-out infinite 0.35s; }
+        .login-puff-3 { animation: puffOut 1.4s ease-out infinite 0.7s; }
+
+        @keyframes puffOut {
+          0%   { opacity: 0.75; transform: translateX(0) scale(1); }
+          100% { opacity: 0;    transform: translateX(-45px) scale(1.8); }
+        }
+
+        .login-dots {
+          position: absolute;
+          bottom: 36px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .login-dot {
+          border-radius: 99px;
+          background: rgba(255,255,255,0.28);
+          transition: all 0.3s;
+        }
+
+        .login-dot-passive { width: 8px;  height: 8px; }
+        .login-dot-active   { width: 20px; height: 8px; background: #818cf8; animation: dotPulseAnim 1.4s ease-in-out infinite; }
+
+        @keyframes dotPulseAnim {
+          0%, 100% { opacity: 0.7; transform: scaleX(1); }
+          50%       { opacity: 1;   transform: scaleX(1.1); }
+        }
+
+        /* ── RIGHT PANEL ── */
+        .login-right {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 32px 24px;
+          background: #ffffff;
+          min-height: 100vh;
+        }
+
+        @media (min-width: 1024px) {
+          .login-right { width: 50%; }
+        }
+
+        .login-form-container {
+          width: 100%;
+          max-width: 400px;
+        }
+
+        /* Mobile logo */
+        .login-mobile-logo {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 40px;
+        }
+
+        @media (min-width: 1024px) {
+          .login-mobile-logo { display: none; }
+        }
+
+        .login-mobile-logo-icon {
+          width: 56px; height: 56px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #6366f1, #7c3aed);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+        }
+
+        .login-mobile-logo-text {
+          font-size: 20px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.5px;
+        }
+
+        .login-mobile-logo-sub {
+          font-size: 13px;
+          color: #64748b;
+          margin: 4px 0 0;
+        }
+
+        /* Form header */
+        .login-form-header { margin-bottom: 28px; }
+
+        .login-form-title {
+          font-size: 26px;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 6px;
+        }
+
+        .login-form-subtitle {
+          font-size: 14px;
+          color: #64748b;
+          margin: 0;
+        }
+
+        /* Error */
+        .login-error {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 14px;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 10px;
+          color: #dc2626;
+          font-size: 14px;
+          margin-bottom: 20px;
+        }
+
+        .login-error-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+        /* Fields */
+        .login-fields { display: flex; flex-direction: column; gap: 18px; }
+
+        .login-field-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .login-field-icon {
+          position: absolute;
+          left: 14px;
+          width: 18px;
+          height: 18px;
+          color: #94a3b8;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .login-input {
+          width: 100%;
+          height: 48px;
+          padding: 0 16px 0 46px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #0f172a;
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+          box-sizing: border-box;
+        }
+
+        .login-input::placeholder { color: #94a3b8; }
+
+        .login-input:focus {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+
+        .login-row-between {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .login-checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: #475569;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .login-checkbox {
+          width: 16px; height: 16px;
+          border-radius: 4px;
+          border: 1.5px solid #cbd5e1;
+          accent-color: #6366f1;
+          cursor: pointer;
+        }
+
+        .login-forgot-link {
+          font-size: 14px;
+          font-weight: 500;
+          color: #6366f1;
+          text-decoration: none;
+          transition: color 0.15s;
+        }
+
+        .login-forgot-link:hover { color: #4f46e5; }
+
+        .login-submit-btn {
+          width: 100%;
+          height: 48px;
+          background: #0d9488;
+          color: #ffffff;
+          border: none;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: background 0.15s, transform 0.1s;
+          margin-top: 4px;
+        }
+
+        .login-submit-btn:hover:not(:disabled) { background: #0f766e; }
+        .login-submit-btn:active:not(:disabled) { transform: scale(0.99); }
+        .login-submit-btn:disabled { background: #5eead4; cursor: not-allowed; }
+
+        .login-spin-icon { animation: spinIcon 0.7s linear infinite; }
+
+        @keyframes spinIcon {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+
+        .login-signup-link {
+          text-align: center;
+          font-size: 14px;
+          color: #64748b;
+          margin-top: 24px;
+        }
+
+        .login-signup-link span {
+          color: #6366f1;
+          font-weight: 500;
+          cursor: pointer;
+          transition: color 0.15s;
+        }
+
+        .login-signup-link span:hover { color: #4f46e5; }
+      `}</style>
     </div>
   )
 }
