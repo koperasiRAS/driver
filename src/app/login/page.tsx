@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { signIn } from '@/services/auth'
 
 export default function LoginPage() {
@@ -37,175 +38,191 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const DriverIllustration = () => (
-    <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" className="login-illustration">
-      {/* Sky background */}
-      <defs>
-        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#e0f2fe" />
-          <stop offset="100%" stopColor="#bae6fd" />
-        </linearGradient>
-        <linearGradient id="carGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#0ea5e9" />
-          <stop offset="100%" stopColor="#0284c7" />
-        </linearGradient>
-        <radialGradient id="wheelGrad" cx="50%" cy="35%">
-          <stop offset="0%" stopColor="#2d3748" />
-          <stop offset="60%" stopColor="#1a202c" />
-          <stop offset="100%" stopColor="#0f1419" />
-        </radialGradient>
-        <radialGradient id="tireMatte" cx="50%" cy="50%">
-          <stop offset="0%" stopColor="#2a2a2a" />
-          <stop offset="100%" stopColor="#1a1a1a" />
-        </radialGradient>
-        <filter id="wheelShadow">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.2" />
-        </filter>
-      </defs>
-      
-      <rect width="400" height="400" fill="url(#skyGrad)" />
-      
-      {/* Clouds */}
-      <g opacity="0.6" className="cloud-float">
-        <ellipse cx="80" cy="60" rx="35" ry="20" fill="white" />
-        <ellipse cx="110" cy="65" rx="40" ry="22" fill="white" />
-        <ellipse cx="50" cy="70" rx="30" ry="18" fill="white" />
-      </g>
-      
-      <g opacity="0.4" className="cloud-float cloud-delay-1">
-        <ellipse cx="300" cy="100" rx="38" ry="21" fill="white" />
-        <ellipse cx="335" cy="105" rx="42" ry="23" fill="white" />
-        <ellipse cx="265" cy="115" rx="32" ry="19" fill="white" />
-      </g>
-
-      {/* Road */}
-      <rect x="20" y="280" width="360" height="100" fill="#64748b" />
-      <line x1="20" y1="330" x2="380" y2="330" stroke="white" strokeWidth="2" strokeDasharray="20,10" opacity="0.6" />
-      
-      {/* Truck Body */}
-      <g className="truck-animation">
-        {/* Main cargo area */}
-        <rect x="160" y="200" width="140" height="65" rx="8" fill="url(#carGrad)" />
-        
-        {/* Cargo interior shading */}
-        <rect x="165" y="205" width="130" height="55" rx="6" fill="white" opacity="0.15" />
-        
-        {/* Cabin */}
-        <path d="M 80 220 L 110 180 L 155 180 L 160 220 Z" fill="#0284c7" />
-        <path d="M 85 215 L 155 215 L 155 220 L 85 220 Z" fill="#0ea5e9" />
-        
-        {/* Windshield */}
-        <path d="M 95 190 L 145 190 L 145 210 L 95 210 Z" fill="#60a5fa" opacity="0.4" />
-        <path d="M 100 195 L 140 195 L 140 208 L 100 208 Z" fill="white" opacity="0.2" />
-        
-        {/* Headlights */}
-        <rect x="155" y="210" width="8" height="8" rx="2" fill="#fbbf24" opacity="0.8" />
-        <rect x="155" y="222" width="8" height="6" rx="1.5" fill="#ef4444" opacity="0.8" />
-        
-        {/* Door handle */}
-        <rect x="120" y="215" width="12" height="4" rx="2" fill="#94a3b8" />
-        
-        {/* Wheels - Pixar Style */}
-        {/* Front Wheel */}
-        <g className="wheel-spin" filter="url(#wheelShadow)">
-          {/* Outer tire */}
-          <circle cx="110" cy="270" r="22" fill="url(#tireMatte)" />
-          
-          {/* Rim/Hub shine */}
-          <circle cx="110" cy="270" r="18" fill="url(#wheelGrad)" />
-          <circle cx="110" cy="270" r="10" fill="#1a1a1a" />
-          
-          {/* Center cap shine */}
-          <circle cx="110" cy="270" r="5.5" fill="#3d3d3d" />
-          <circle cx="110" cy="268" r="3" fill="white" opacity="0.3" />
-          
-          {/* Spokes - subtle and clean */}
-          <line x1="110" y1="248" x2="110" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="88" y1="270" x2="132" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="96" y1="256" x2="124" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="124" y1="256" x2="96" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-        </g>
-        
-        {/* Rear Wheel 1 */}
-        <g className="wheel-spin" filter="url(#wheelShadow)">
-          {/* Outer tire */}
-          <circle cx="230" cy="270" r="22" fill="url(#tireMatte)" />
-          
-          {/* Rim/Hub shine */}
-          <circle cx="230" cy="270" r="18" fill="url(#wheelGrad)" />
-          <circle cx="230" cy="270" r="10" fill="#1a1a1a" />
-          
-          {/* Center cap shine */}
-          <circle cx="230" cy="270" r="5.5" fill="#3d3d3d" />
-          <circle cx="230" cy="268" r="3" fill="white" opacity="0.3" />
-          
-          {/* Spokes */}
-          <line x1="230" y1="248" x2="230" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="208" y1="270" x2="252" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="216" y1="256" x2="244" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="244" y1="256" x2="216" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-        </g>
-        
-        {/* Rear Wheel 2 */}
-        <g className="wheel-spin" filter="url(#wheelShadow)">
-          {/* Outer tire */}
-          <circle cx="280" cy="270" r="22" fill="url(#tireMatte)" />
-          
-          {/* Rim/Hub shine */}
-          <circle cx="280" cy="270" r="18" fill="url(#wheelGrad)" />
-          <circle cx="280" cy="270" r="10" fill="#1a1a1a" />
-          
-          {/* Center cap shine */}
-          <circle cx="280" cy="270" r="5.5" fill="#3d3d3d" />
-          <circle cx="280" cy="268" r="3" fill="white" opacity="0.3" />
-          
-          {/* Spokes */}
-          <line x1="280" y1="248" x2="280" y2="292" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="258" y1="270" x2="302" y2="270" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="266" y1="256" x2="294" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-          <line x1="294" y1="256" x2="266" y2="284" stroke="#0f1419" strokeWidth="1.5" opacity="0.4" />
-        </g>
-        
-        {/* Exhaust pipe */}
-        <rect x="75" y="265" width="6" height="12" rx="2" fill="#475569" />
-        
-        {/* Exhaust fumes */}
-        <circle cx="78" cy="260" r="4.5" fill="#a3a3a3" opacity="0.6" className="puff-animation puff-1" />
-        <circle cx="78" cy="253" r="3" fill="#a3a3a3" opacity="0.4" className="puff-animation puff-2" />
-      </g>
-
-      {/* Driver figure (simplified) */}
-      <g className="driver-wave">
-        {/* Head */}
-        <circle cx="195" cy="160" r="10" fill="#fbbf24" />
-        
-        {/* Body */}
-        <rect x="191" y="172" width="8" height="16" rx="2" fill="#3b82f6" />
-        
-        {/* Arms */}
-        <line x1="191" y1="176" x2="170" y2="165" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="199" y1="176" x2="225" y2="165" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" className="wave-arm" />
-        
-        {/* Legs */}
-        <line x1="193" y1="188" x2="190" y2="202" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="197" y1="188" x2="200" y2="202" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
-      </g>
-
-      {/* Decorative elements */}
-      <g opacity="0.3">
-        <circle cx="320" cy="140" r="3" fill="#0ea5e9" />
-        <circle cx="350" cy="120" r="2" fill="#0ea5e9" />
-        <circle cx="60" cy="280" r="2.5" fill="#0ea5e9" />
-      </g>
-    </svg>
-  )
-
   return (
     <div className="login-container">
-      {/* Left Panel - Illustration (Hidden on mobile) */}
+      {/* Left Panel - Pixar Style Illustration */}
       <div className="login-left-panel">
         <div className="login-illustration-wrapper">
-          <DriverIllustration />
+          <svg viewBox="0 0 450 500" fill="none" xmlns="http://www.w3.org/2000/svg" className="login-illustration">
+            <defs>
+              <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#87ceeb" />
+                <stop offset="100%" stopColor="#e0f6ff" />
+              </linearGradient>
+              <linearGradient id="truckGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3498db" />
+                <stop offset="100%" stopColor="#2980b9" />
+              </linearGradient>
+              <radialGradient id="wheelGrad" cx="35%" cy="35%">
+                <stop offset="0%" stopColor="#34495e" />
+                <stop offset="70%" stopColor="#1a252f" />
+                <stop offset="100%" stopColor="#0d141f" />
+              </radialGradient>
+              <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="2" dy="4" stdDeviation="3" floodOpacity="0.25" />
+              </filter>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Sky Background */}
+            <rect width="450" height="500" fill="url(#skyGrad)" />
+
+            {/* Clouds - Left */}
+            <g opacity="0.7">
+              <ellipse cx="60" cy="80" rx="45" ry="28" fill="white" />
+              <ellipse cx="110" cy="90" rx="55" ry="32" fill="white" />
+              <ellipse cx="30" cy="100" rx="40" ry="25" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Clouds - Right */}
+            <g opacity="0.5">
+              <ellipse cx="350" cy="120" rx="50" ry="30" fill="white" />
+              <ellipse cx="410" cy="135" rx="60" ry="35" fill="white" />
+              <ellipse cx="320" cy="150" rx="45" ry="28" fill="white" opacity="0.7" />
+            </g>
+
+            {/* Sun */}
+            <circle cx="380" cy="60" r="35" fill="#ffd700" opacity="0.9" />
+            <circle cx="380" cy="60" r="38" fill="#ffd700" opacity="0.3" />
+
+            {/* Ground/Road */}
+            <rect x="0" y="350" width="450" height="150" fill="#7f8c8d" />
+            <line x1="0" y1="380" x2="450" y2="380" stroke="white" strokeWidth="3" strokeDasharray="25,15" opacity="0.6" />
+
+            {/* Truck - Main Body */}
+            <g filter="url(#shadow)">
+              {/* Cargo Container */}
+              <rect x="180" y="220" width="160" height="90" rx="12" fill="url(#truckGrad)" />
+              <rect x="188" y="228" width="144" height="80" rx="10" fill="white" opacity="0.12" />
+
+              {/* Container Details - Lines */}
+              <line x1="190" y1="240" x2="330" y2="240" stroke="#1a5fa0" strokeWidth="1" opacity="0.5" />
+              <line x1="190" y1="260" x2="330" y2="260" stroke="#1a5fa0" strokeWidth="1" opacity="0.5" />
+              <line x1="190" y1="280" x2="330" y2="280" stroke="#1a5fa0" strokeWidth="1" opacity="0.5" />
+
+              {/* Cabin - Main */}
+              <path d="M 80 270 L 120 200 L 175 200 L 180 270 Z" fill="#2980b9" />
+              <rect x="82" y="260" width="95" height="22" rx="2" fill="#3498db" />
+
+              {/* Windshield */}
+              <path d="M 95 210 L 165 210 L 170 255 L 90 255 Z" fill="#5dade2" opacity="0.6" filter="url(#glow)" />
+              <path d="M 100 220 L 160 220 L 163 250 L 97 250 Z" fill="white" opacity="0.2" />
+
+              {/* Left Side Mirror */}
+              <rect x="75" y="235" width="8" height="20" rx="2" fill="#34495e" />
+              <rect x="72" y="235" width="6" height="16" rx="1" fill="#5dade2" />
+
+              {/* Headlights */}
+              <circle cx="175" cy="245" r="6" fill="#ffd700" opacity="0.9" />
+              <circle cx="175" cy="255" r="5" fill="#e74c3c" opacity="0.8" />
+
+              {/* Bumper */}
+              <rect x="175" y="260" width="15" height="18" rx="3" fill="#34495e" />
+              <rect x="177" y="262" width="11" height="14" rx="2" fill="#2c3e50" />
+
+              {/* Door Handle */}
+              <rect x="130" y="248" width="18" height="6" rx="2" fill="#95a5a6" />
+
+              {/* Side Vents */}
+              <rect x="110" y="250" width="3" height="15" fill="#1a5fa0" opacity="0.7" />
+              <rect x="118" y="250" width="3" height="15" fill="#1a5fa0" opacity="0.7" />
+
+              {/* Exhaust Pipe */}
+              <rect x="75" y="280" width="8" height="25" rx="2" fill="#5d6d7b" />
+              <circle cx="79" cy="308" r="6" fill="#7f8c8d" />
+
+              {/* Wheels - Front */}
+              <g filter="url(#shadow)">
+                <circle cx="110" cy="345" r="28" fill="url(#wheelGrad)" />
+                <circle cx="110" cy="345" r="20" fill="#34495e" />
+                <circle cx="110" cy="345" r="14" fill="#1a252f" />
+                <circle cx="110" cy="345" r="8" fill="#2c3e50" />
+                <circle cx="110" cy="340" r="4" fill="white" opacity="0.4" />
+                <line x1="110" y1="317" x2="110" y2="373" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="82" y1="345" x2="138" y2="345" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="87" y1="322" x2="133" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+                <line x1="133" y1="322" x2="87" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+              </g>
+
+              {/* Wheels - Middle Rear */}
+              <g filter="url(#shadow)">
+                <circle cx="240" cy="345" r="28" fill="url(#wheelGrad)" />
+                <circle cx="240" cy="345" r="20" fill="#34495e" />
+                <circle cx="240" cy="345" r="14" fill="#1a252f" />
+                <circle cx="240" cy="345" r="8" fill="#2c3e50" />
+                <circle cx="240" cy="340" r="4" fill="white" opacity="0.4" />
+                <line x1="240" y1="317" x2="240" y2="373" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="212" y1="345" x2="268" y2="345" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="217" y1="322" x2="263" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+                <line x1="263" y1="322" x2="217" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+              </g>
+
+              {/* Wheels - Rear */}
+              <g filter="url(#shadow)">
+                <circle cx="310" cy="345" r="28" fill="url(#wheelGrad)" />
+                <circle cx="310" cy="345" r="20" fill="#34495e" />
+                <circle cx="310" cy="345" r="14" fill="#1a252f" />
+                <circle cx="310" cy="345" r="8" fill="#2c3e50" />
+                <circle cx="310" cy="340" r="4" fill="white" opacity="0.4" />
+                <line x1="310" y1="317" x2="310" y2="373" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="282" y1="345" x2="338" y2="345" stroke="#7f8c8d" strokeWidth="1.5" opacity="0.3" />
+                <line x1="287" y1="322" x2="333" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+                <line x1="333" y1="322" x2="287" y2="368" stroke="#7f8c8d" strokeWidth="1" opacity="0.2" />
+              </g>
+
+              {/* Exhaust Smoke - Subtle */}
+              <circle cx="79" cy="300" r="8" fill="#bdc3c7" opacity="0.3" />
+              <circle cx="75" cy="290" r="6" fill="#bdc3c7" opacity="0.2" />
+            </g>
+
+            {/* Driver Figure - Waving */}
+            <g filter="url(#shadow)">
+              {/* Head */}
+              <circle cx="150" cy="185" r="14" fill="#f4a460" />
+              {/* Hair */}
+              <path d="M 136 180 Q 150 170 164 180" fill="#8b4513" opacity="0.7" />
+              {/* Eyes */}
+              <circle cx="145" cy="182" r="2" fill="#000" />
+              <circle cx="155" cy="182" r="2" fill="#000" />
+              {/* Smile */}
+              <path d="M 147 190 Q 150 192 153 190" stroke="#000" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+
+              {/* Body */}
+              <ellipse cx="150" cy="210" rx="12" ry="20" fill="#e74c3c" />
+              {/* Shirt detail */}
+              <rect x="140" y="205" width="20" height="3" fill="#c0392b" />
+
+              {/* Left Arm */}
+              <rect x="125" y="208" width="18" height="8" rx="4" fill="#f4a460" />
+
+              {/* Right Arm - Waving */}
+              <g>
+                <rect x="157" y="200" width="8" height="22" rx="4" fill="#f4a460" />
+                <circle cx="162" cy="195" r="7" fill="#f4a460" />
+                {/* Waving Hand Motion */}
+                <path d="M 162 195 L 175 185 L 172 200" fill="#f4a460" opacity="0.8" />
+              </g>
+
+              {/* Legs */}
+              <rect x="145" y="230" width="6" height="18" rx="2" fill="#34495e" />
+              <rect x="155" y="230" width="6" height="18" rx="2" fill="#34495e" />
+              {/* Shoes */}
+              <ellipse cx="148" cy="250" rx="5" ry="4" fill="#2c3e50" />
+              <ellipse cx="158" cy="250" rx="5" ry="4" fill="#2c3e50" />
+            </g>
+
+            {/* Decorative Stars */}
+            <g opacity="0.5">
+              <polygon points="30,40 33,48 42,48 35,54 38,62 30,57 22,62 25,54 18,48 27,48" fill="#ffd700" />
+              <polygon points="420,90 423,98 432,98 425,104 428,112 420,107 412,112 415,104 408,98 417,98" fill="#ffd700" />
+            </g>
+          </svg>
         </div>
         <div className="login-left-content">
           <h1 className="login-left-title">Welcome Back</h1>
@@ -296,7 +313,9 @@ export default function LoginPage() {
                 />
                 <span>Remember me</span>
               </label>
-              <a href="#" className="login-forgot-link">Forgot password?</a>
+              <Link href="/forgot-password" className="login-forgot-link">
+                Forgot password?
+              </Link>
             </div>
 
             {/* Submit Button */}
@@ -311,7 +330,10 @@ export default function LoginPage() {
                   Signing in...
                 </>
               ) : (
-                'Sign In'
+                <>
+                  Sign In
+                  <ArrowRight size={18} />
+                </>
               )}
             </button>
           </form>
@@ -319,7 +341,9 @@ export default function LoginPage() {
           {/* Signup Link */}
           <p className="login-signup-prompt">
             Don&apos;t have an account?{' '}
-            <a href="#" className="login-signup-link">Create one</a>
+            <Link href="/signup" className="login-signup-link">
+              Create one
+            </Link>
           </p>
         </div>
       </div>
