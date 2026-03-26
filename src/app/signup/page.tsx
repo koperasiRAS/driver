@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, AlertCircle, CheckCircle, User, Users } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, User } from 'lucide-react'
 import { signUpAction } from '@/app/actions/auth'
 
 export default function SignUpPage() {
@@ -12,7 +12,6 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<'driver' | 'owner'>('driver')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -53,7 +52,8 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const result = await signUpAction({ email, password, fullName, role })
+      // Always create as 'driver' role — owner creates accounts via dashboard
+      const result = await signUpAction({ email, password, fullName, role: 'driver' })
       if (!result.success) {
         setError(result.error || 'Gagal membuat akun')
       } else {
@@ -117,9 +117,9 @@ export default function SignUpPage() {
                   <rect width="12" height="8" x="6" y="14" rx="2" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Buat Akun</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Buat Akun Driver</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Daftar untuk memulai mengelola armada
+                Daftar sebagai driver — akun akan diverifikasi oleh owner
               </p>
             </div>
 
@@ -213,41 +213,6 @@ export default function SignUpPage() {
                     disabled={loading}
                     className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50 text-sm"
                   />
-                </div>
-
-                {/* Role Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Tipe Akun
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRole('driver')}
-                      disabled={loading}
-                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
-                        role === 'driver'
-                          ? 'border-teal-600 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-200'
-                          : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
-                      }`}
-                    >
-                      <User size={16} />
-                      Driver
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('owner')}
-                      disabled={loading}
-                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium flex items-center gap-2 justify-center ${
-                        role === 'owner'
-                          ? 'border-teal-600 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-200'
-                          : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400'
-                      }`}
-                    >
-                      <Users size={16} />
-                      Owner
-                    </button>
-                  </div>
                 </div>
 
                 {/* Password Requirements */}
