@@ -45,10 +45,9 @@ export default function LoginPage() {
       <div className="login-left-panel">
         <div className="login-illustration-wrapper">
           <Image
-            src="/illustrations/delivery-driver.png"
-            alt="Delivery Driver with Truck"
-            width={450}
-            height={500}
+            src="https://minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com/ccv2%2F2026-03-26%2FMiniMax-M2.7%2F2029882662956577167%2F741e9e971b6eaa01a6811fbe30e3321c912274fb5ac670c6274cd94e72a1b415..png"
+            alt="Delivery Driver"
+            fill
             className="login-illustration"
             priority
             quality={90}
