@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Lock, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
 
       try {
         // Exchange the code for a session
-        const { error } = await createClient().auth.exchangeCodeForSession(code)
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (error) {
           setTokenError('This password reset link has expired. Please request a new one.')
@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
 
     try {
       // Update user password
-      const { error: updateError } = await createClient().auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       })
 

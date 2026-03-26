@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mail, Lock, User, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, Users } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -61,7 +61,7 @@ export default function SignUpPage() {
 
     try {
       // Sign up with Supabase
-      const { data, error: signUpError } = await createClient().auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -77,7 +77,7 @@ export default function SignUpPage() {
         setError(signUpError.message || 'Failed to create account')
       } else if (data.user) {
         // Create profile in database
-        const { error: profileError } = await createClient()
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
