@@ -79,3 +79,52 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
+
+/* Login page car animations */
+@keyframes carDrive {
+  0%   { transform: translateX(-120px); }
+  100% { transform: translateX(260px); }
+}
+
+@keyframes wheelSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes puffFloat {
+  0%   { opacity: 0.7; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-40px) scale(1.6); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1); }
+}
+
+.animate-car-drive {
+  animation: carDrive 4s ease-in-out infinite alternate;
+}
+
+.animate-wheel-spin {
+  animation: wheelSpin 0.5s linear infinite;
+  transform-origin: center;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.animate-puff {
+  animation: puffFloat 1.5s ease-out infinite;
+}
+
+.animate-dot-pulse {
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
