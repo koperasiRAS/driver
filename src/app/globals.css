@@ -904,29 +904,12 @@ html, body {
   .login-remember input {
     border-color: #475569;
   }
-  }
 
-  .login-input {
-    background: #0f172a;
-    border-color: #334155;
-    color: #f1f5f9;
-  }
-
-  .login-input:hover {
-    background: #1e293b;
-    border-color: #475569;
-  }
-
-  .login-input:focus {
-    background: #1e293b;
-    border-color: #0ea5e9;
-  }
-
-  .login-input::placeholder {
+  .login-input-button {
     color: #64748b;
   }
 
-  .login-logo-text {
-    color: #f1f5f9;
+  .login-input-button:hover {
+    color: #0ea5e9;
   }
 }
