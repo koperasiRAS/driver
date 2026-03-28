@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingPage } from '@/components/common/loading-spinner'
@@ -27,31 +27,219 @@ export default function OwnerAnalyticsPage() {
   const [lateDepositsAmount, setLateDepositsAmount] = useState(0)
   const [lateDepositsMonth, setLateDepositsMonth] = useState<string | null>(null)
 
-  // fetchData defined at component level so both useEffects can reference it
-  const fetchData = useCallback(async () => {
-    try {
-      const supabase = createClient()
+  // Initial fetch + timeout guard
+  useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 10000)
 
-      // Get monthly data with settlement awareness
+    async function load() {
+      try {
+        const supabase = createClient()
+
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth()
+        const monthlyArr: MonthlyData[] = []
+
+        // Fetch settlements for all months in the 6-month window
+        const settlementMap: Record<string, MonthlySettlement> = {}
+        try {
+          const settlementYearMonths = []
+          for (let i = 5; i >= 0; i--) {
+            const m = new Date(currentYear, currentMonth - i, 1)
+            settlementYearMonths.push({ year: m.getFullYear(), month: m.getMonth() + 1 })
+          }
+
+          for (const ym of settlementYearMonths) {
+            try {
+              const { data: s } = await supabase
+                .from('monthly_settlements')
+                .select('*')
+                .eq('settled_year', ym.year)
+                .eq('settled_month', ym.month)
+                .single()
+              if (s) {
+                settlementMap[`${ym.year}-${ym.month}`] = s
+              }
+            } catch { /* no settlement for this month */ }
+          }
+        } catch { /* ignore */ }
+
+        for (let i = 5; i >= 0; i--) {
+          const month = new Date(currentYear, currentMonth - i, 1)
+          const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
+          // Apply Jakarta UTC+7 offset so date boundaries are correct
+          const firstDay = new Date(new Date(currentYear, currentMonth - i, 1).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
+          const lastDay = new Date(new Date(currentYear, currentMonth - i + 1, 0).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
+          const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
+          const hasSettlement = !!settlementMap[settlementKey]
+
+          try {
+            if (hasSettlement) {
+              monthlyArr.push({
+                month: monthStr,
+                totalDeposits: settlementMap[settlementKey].total_amount,
+                target: MONTHLY_TARGET,
+              })
+            } else {
+              const { data: deposits } = await supabase
+                .from('deposits')
+                .select('amount')
+                .eq('status', 'approved')
+                .gte('deposit_date', firstDay)
+                .lte('deposit_date', lastDay)
+
+              const totalDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
+              monthlyArr.push({ month: monthStr, totalDeposits, target: MONTHLY_TARGET })
+            }
+          } catch (e) {
+            monthlyArr.push({ month: monthStr, totalDeposits: 0, target: MONTHLY_TARGET })
+          }
+        }
+        setMonthlyData(monthlyArr)
+
+        // Get driver performance
+        try {
+          const { data: drivers } = await supabase
+            .from('drivers')
+            .select('id, profile:profiles(full_name)')
+            .eq('is_active', true)
+
+          const perf: DriverPerformance[] = []
+          if (drivers) {
+            for (const driver of drivers) {
+              try {
+                const { data: deposits } = await supabase
+                  .from('deposits')
+                  .select('amount')
+                  .eq('driver_id', driver.id)
+                  .eq('status', 'approved')
+
+                const { count: totalReports } = await supabase
+                  .from('daily_reports')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('driver_id', driver.id)
+
+                const { count: reportsWithIncome } = await supabase
+                  .from('daily_reports')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('driver_id', driver.id)
+                  .eq('status', 'narik')
+                  .gt('daily_income', 0)
+
+                perf.push({
+                  driverId: driver.id,
+                  driverName: (driver.profile as any)?.full_name || 'Unknown',
+                  totalDeposits: (deposits || []).reduce((s, d) => s + Number(d.amount), 0),
+                  totalReports: totalReports || 0,
+                  reportsWithIncome: reportsWithIncome || 0,
+                })
+              } catch (e) { /* skip this driver */ }
+            }
+          }
+          setPerformance(perf.sort((a, b) => b.totalDeposits - a.totalDeposits))
+        } catch (e) {
+          setPerformance([])
+        }
+
+        // Get weekly reports
+        try {
+          const { data: weekly } = await supabase
+            .from('weekly_reports')
+            .select('*, driver:drivers(profile:profiles(full_name))')
+            .order('week_start', { ascending: false })
+            .limit(20)
+          setWeeklyReports(weekly || [])
+        } catch (e) {
+          setWeeklyReports([])
+        }
+
+        // Get monthly reports
+        try {
+          const { data: monthlyRpt } = await supabase
+            .from('monthly_reports')
+            .select('*, driver:drivers(profile:profiles(full_name))')
+            .order('month', { ascending: false })
+            .limit(20)
+          setMonthlyReportsList(monthlyRpt || [])
+        } catch (e) {
+          setMonthlyReportsList([])
+        }
+
+        // Get activity logs
+        try {
+          const { data: logs } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50)
+          setActivityLogs(logs || [])
+        } catch (e) {
+          setActivityLogs([])
+        }
+
+        // Get current month's settlement
+        try {
+          const { data: settlementData } = await supabase
+            .from('monthly_settlements')
+            .select('*')
+            .eq('settled_year', currentYear)
+            .eq('settled_month', currentMonth + 1)
+            .single()
+          setCurrentSettlement(settlementData || null)
+
+          if (settlementData) {
+            const prevMonthDate = new Date(currentYear, currentMonth - 1, 1)
+            const prevFirstDay = prevMonthDate.toISOString().split('T')[0]
+            const prevLastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+
+            const { data: lateDeposits } = await supabase
+              .from('deposits')
+              .select('amount')
+              .eq('status', 'approved')
+              .gte('deposit_date', prevFirstDay)
+              .lte('deposit_date', prevLastDay)
+              .gte('reviewed_at', settlementData.settled_at)
+
+            const lateTotal = (lateDeposits || []).reduce((s, d) => s + Number(d.amount), 0)
+            setLateDepositsAmount(lateTotal)
+            setLateDepositsMonth(prevMonthDate.toLocaleString('id-ID', { month: 'long' }))
+          } else {
+            setLateDepositsAmount(0)
+            setLateDepositsMonth(null)
+          }
+        } catch {
+          setCurrentSettlement(null)
+          setLateDepositsAmount(0)
+          setLateDepositsMonth(null)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+    return () => clearTimeout(timeout)
+  }, [])
+
+  // Realtime subscription — update analytics when deposits change
+  useEffect(() => {
+    const supabase = createClient()
+
+    async function loadRealtime() {
       const now = new Date()
       const currentYear = now.getFullYear()
       const currentMonth = now.getMonth()
       const monthlyArr: MonthlyData[] = []
 
-      // Fetch settlements for all months in the 6-month window
       const settlementMap: Record<string, MonthlySettlement> = {}
       try {
-        const settlements: MonthlySettlement[] = []
+        const settlementYearMonths = []
         for (let i = 5; i >= 0; i--) {
           const m = new Date(currentYear, currentMonth - i, 1)
-          settlements.push(m as any)
+          settlementYearMonths.push({ year: m.getFullYear(), month: m.getMonth() + 1 })
         }
-        // Bulk fetch settlements
-        const settlementYearMonths = settlements.map((_, i) => {
-          const m = new Date(currentYear, currentMonth - i, 1)
-          return { year: m.getFullYear(), month: m.getMonth() + 1 }
-        })
-
         for (const ym of settlementYearMonths) {
           try {
             const { data: s } = await supabase
@@ -60,43 +248,25 @@ export default function OwnerAnalyticsPage() {
               .eq('settled_year', ym.year)
               .eq('settled_month', ym.month)
               .single()
-            if (s) {
-              settlementMap[`${ym.year}-${ym.month}`] = s
-            }
-          } catch { /* no settlement for this month */ }
+            if (s) settlementMap[`${ym.year}-${ym.month}`] = s
+          } catch { /* no settlement */ }
         }
       } catch { /* ignore */ }
 
       for (let i = 5; i >= 0; i--) {
         const month = new Date(currentYear, currentMonth - i, 1)
         const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
-        // Apply Jakarta UTC+7 offset so date boundaries are correct
-        const firstDayDate = new Date(currentYear, currentMonth - i, 1)
-        const firstDay = new Date(firstDayDate.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
-        const lastDayDate = new Date(currentYear, currentMonth - i + 1, 0)
-        const lastDay = new Date(lastDayDate.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const firstDay = new Date(new Date(currentYear, currentMonth - i, 1).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const lastDay = new Date(new Date(currentYear, currentMonth - i + 1, 0).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
         const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
         const hasSettlement = !!settlementMap[settlementKey]
 
         try {
           if (hasSettlement) {
-            // Month is settled — use settlement amount
-            monthlyArr.push({
-              month: monthStr,
-              totalDeposits: settlementMap[settlementKey].total_amount,
-              target: MONTHLY_TARGET,
-            })
+            monthlyArr.push({ month: monthStr, totalDeposits: settlementMap[settlementKey].total_amount, target: MONTHLY_TARGET })
           } else {
-            // Month not settled — query live approved deposits
-            const { data: deposits } = await supabase
-              .from('deposits')
-              .select('amount')
-              .eq('status', 'approved')
-              .gte('deposit_date', firstDay)
-              .lte('deposit_date', lastDay)
-
-            const totalDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
-            monthlyArr.push({ month: monthStr, totalDeposits, target: MONTHLY_TARGET })
+            const { data: deposits } = await supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDay).lte('deposit_date', lastDay)
+            monthlyArr.push({ month: monthStr, totalDeposits: (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0), target: MONTHLY_TARGET })
           }
         } catch (e) {
           monthlyArr.push({ month: monthStr, totalDeposits: 0, target: MONTHLY_TARGET })
@@ -104,150 +274,22 @@ export default function OwnerAnalyticsPage() {
       }
       setMonthlyData(monthlyArr)
 
-      // Get driver performance
       try {
-        const { data: drivers } = await supabase
-          .from('drivers')
-          .select('id, profile:profiles(full_name)')
-          .eq('is_active', true)
-
-        const perf: DriverPerformance[] = []
-        if (drivers) {
-          for (const driver of drivers) {
-            try {
-              const { data: deposits } = await supabase
-                .from('deposits')
-                .select('amount')
-                .eq('driver_id', driver.id)
-                .eq('status', 'approved')
-
-              const { count: totalReports } = await supabase
-                .from('daily_reports')
-                .select('*', { count: 'exact', head: true })
-                .eq('driver_id', driver.id)
-
-              const { count: reportsWithIncome } = await supabase
-                .from('daily_reports')
-                .select('*', { count: 'exact', head: true })
-                .eq('driver_id', driver.id)
-                .eq('status', 'narik')
-                .gt('daily_income', 0)
-
-              perf.push({
-                driverId: driver.id,
-                driverName: (driver.profile as any)?.full_name || 'Unknown',
-                totalDeposits: (deposits || []).reduce((s, d) => s + Number(d.amount), 0),
-                totalReports: totalReports || 0,
-                reportsWithIncome: reportsWithIncome || 0,
-              })
-            } catch (e) {
-              // Skip this driver if error
-            }
-          }
-        }
-        setPerformance(perf.sort((a, b) => b.totalDeposits - a.totalDeposits))
-      } catch (e) {
-        setPerformance([])
-      }
-
-      // Get weekly reports
-      try {
-        const { data: weekly } = await supabase
-          .from('weekly_reports')
-          .select('*, driver:drivers(profile:profiles(full_name))')
-          .order('week_start', { ascending: false })
-          .limit(20)
-        setWeeklyReports(weekly || [])
-      } catch (e) {
-        setWeeklyReports([])
-      }
-
-      // Get monthly reports
-      try {
-        const { data: monthlyRpt } = await supabase
-          .from('monthly_reports')
-          .select('*, driver:drivers(profile:profiles(full_name))')
-          .order('month', { ascending: false })
-          .limit(20)
-        setMonthlyReportsList(monthlyRpt || [])
-      } catch (e) {
-        setMonthlyReportsList([])
-      }
-
-      // Get activity logs
-      try {
-        const { data: logs } = await supabase
-          .from('activity_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50)
-        setActivityLogs(logs || [])
-      } catch (e) {
-        setActivityLogs([])
-      }
-
-      // Get current month's settlement
-      try {
-        const { data: settlementData } = await supabase
-          .from('monthly_settlements')
-          .select('*')
-          .eq('settled_year', currentYear)
-          .eq('settled_month', currentMonth + 1)
-          .single()
+        const { data: settlementData } = await supabase.from('monthly_settlements').select('*').eq('settled_year', currentYear).eq('settled_month', currentMonth + 1).single()
         setCurrentSettlement(settlementData || null)
-
-        // Calculate late deposits from previous month (approved after settlement)
-        if (settlementData) {
-          const prevMonthDate = new Date(currentYear, currentMonth - 1, 1)
-          const prevFirstDay = prevMonthDate.toISOString().split('T')[0]
-          const prevLastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
-
-          const { data: lateDeposits } = await supabase
-            .from('deposits')
-            .select('amount')
-            .eq('status', 'approved')
-            .gte('deposit_date', prevFirstDay)
-            .lte('deposit_date', prevLastDay)
-            .gte('reviewed_at', settlementData.settled_at)
-
-          const lateTotal = (lateDeposits || []).reduce((s, d) => s + Number(d.amount), 0)
-          setLateDepositsAmount(lateTotal)
-          setLateDepositsMonth(prevMonthDate.toLocaleString('id-ID', { month: 'long' }))
-        } else {
-          setLateDepositsAmount(0)
-          setLateDepositsMonth(null)
-        }
       } catch {
         setCurrentSettlement(null)
-        setLateDepositsAmount(0)
-        setLateDepositsMonth(null)
       }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
     }
-  }, [])
 
-  // Initial fetch + timeout guard
-  useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 10000)
-    // void silences the TypeScript promise-return warning; fetchData has its own try/catch
-    void fetchData()
-    return () => clearTimeout(timeout)
-  }, [fetchData])
-
-  // Realtime subscription — update analytics when deposits change
-  useEffect(() => {
-    const supabase = createClient()
     const channel = supabase
       .channel('analytics-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => { void fetchData() })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, () => { void fetchData() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, loadRealtime)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, loadRealtime)
       .subscribe()
 
     return () => supabase.removeChannel(channel)
-  }, [fetchData])
+  }, [])
 
   const handleSettle = async () => {
     setIsSettling(true)
