@@ -146,8 +146,22 @@ export default function OwnerDashboard() {
 
       try {
         if (settledAt) {
-          // Bulan LUNAS — gunakan nominal dari settlement
+          // Bulan LUNAS — start from settlement amount
           monthlyDeposits = settlementTotalAmount
+          // Then add late deposits from THIS month (approved after settlement)
+          const settledAtMs = new Date(settledAt).getTime()
+          const { data: lateForSettled } = await supabase
+            .from('deposits')
+            .select('amount, reviewed_at, created_at')
+            .eq('status', 'approved')
+            .gte('deposit_date', firstDayOfMonth)
+            .lte('deposit_date', lastDayOfMonth)
+          ;(lateForSettled || []).forEach((d: { amount: unknown; reviewed_at?: string; created_at: string }) => {
+            const reviewedAtMs = d.reviewed_at ? new Date(d.reviewed_at).getTime() : new Date(d.created_at).getTime()
+            if (reviewedAtMs > settledAtMs) {
+              monthlyDeposits += Number(d.amount)
+            }
+          })
         } else {
           // Belum settle — query live deposits
           const { data: deposits } = await supabase
