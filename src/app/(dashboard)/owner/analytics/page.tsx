@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingPage } from '@/components/common/loading-spinner'
@@ -28,7 +28,7 @@ export default function OwnerAnalyticsPage() {
   const [lateDepositsMonth, setLateDepositsMonth] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
       try {
         const supabase = createClient()
 
@@ -70,8 +70,11 @@ export default function OwnerAnalyticsPage() {
         for (let i = 5; i >= 0; i--) {
           const month = new Date(currentYear, currentMonth - i, 1)
           const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
-          const firstDay = month.toISOString().split('T')[0]
-          const lastDay = new Date(currentYear, currentMonth - i + 1, 0).toISOString().split('T')[0]
+          // Apply Jakarta UTC+7 offset so date boundaries are correct
+          const firstDayDate = new Date(currentYear, currentMonth - i, 1)
+          const firstDay = new Date(firstDayDate.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
+          const lastDayDate = new Date(currentYear, currentMonth - i + 1, 0)
+          const lastDay = new Date(lastDayDate.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
           const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
           const hasSettlement = !!settlementMap[settlementKey]
 
@@ -224,7 +227,7 @@ export default function OwnerAnalyticsPage() {
       } finally {
         setLoading(false)
       }
-    }
+    }, [])
 
     // Timeout to prevent infinite loading
     const timeout = setTimeout(() => {
@@ -234,7 +237,19 @@ export default function OwnerAnalyticsPage() {
     fetchData()
 
     return () => clearTimeout(timeout)
-  }, [])
+  }, [fetchData])
+
+  // Realtime subscription — update analytics when deposits change
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('analytics-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, () => fetchData())
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [fetchData])
 
   const handleSettle = async () => {
     setIsSettling(true)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingPage } from '@/components/common/loading-spinner'
@@ -56,126 +56,129 @@ export default function OwnerDashboard() {
 
   const YEARS = [0, 1, 2, 3, 4].map(i => new Date().getFullYear() - i)
 
-  useEffect(() => {
+  const fetchAll = useCallback(async () => {
     const supabase = createClient()
 
-    const fetchAll = async () => {
-      // Reset stale data immediately so previous month's data doesn't show during re-fetch
-      setDriverDeposits([])
-      setDriverReports([])
-      setDriverIncome(0)
-      setDriverExpenses(0)
-      setDriverOrders(0)
+    // Reset stale data immediately so previous month's data doesn't show during re-fetch
+    setDriverDeposits([])
+    setDriverReports([])
+    setDriverIncome(0)
+    setDriverExpenses(0)
+    setDriverOrders(0)
 
-      const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
-      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
+    const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
+    const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
 
-      // 1. Check if selected month is settled
-      let settledAt: string | null = null
-      let settlementTotalAmount = 0
+    // 1. Check if selected month is settled
+    let settledAt: string | null = null
+    let settlementTotalAmount = 0
+    try {
+      const { data: settlement } = await supabase
+        .from('monthly_settlements')
+        .select('settled_at, total_amount')
+        .eq('settled_year', selectedYear)
+        .eq('settled_month', selectedMonth)
+        .single()
+      settledAt = settlement?.settled_at || null
+      settlementTotalAmount = Number(settlement?.total_amount || 0)
+      setCurrentSettlement(settlement || null)
+    } catch {
+      setCurrentSettlement(null)
+    }
+
+    // 2. Fetch stats
+    try {
+      const today = getTodayDateString()
+      let totalDrivers = 0, todayReports = 0, pendingDeposits = 0, monthlyDeposits = 0
+
       try {
-        const { data: settlement } = await supabase
-          .from('monthly_settlements')
-          .select('settled_at, total_amount')
-          .eq('settled_year', selectedYear)
-          .eq('settled_month', selectedMonth)
-          .single()
-        settledAt = settlement?.settled_at || null
-        settlementTotalAmount = Number(settlement?.total_amount || 0)
-        setCurrentSettlement(settlement || null)
-      } catch {
-        setCurrentSettlement(null)
-      }
+        const { count } = await supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('is_active', true)
+        totalDrivers = count || 0
+      } catch { /* */ }
 
-      // 2. Fetch stats
       try {
-        const today = getTodayDateString()
-        let totalDrivers = 0, todayReports = 0, pendingDeposits = 0, monthlyDeposits = 0
+        const { count } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).eq('report_date', today)
+        todayReports = count || 0
+      } catch { /* */ }
 
-        try {
-          const { count } = await supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('is_active', true)
-          totalDrivers = count || 0
-        } catch { /* */ }
-
-        try {
-          const { count } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).eq('report_date', today)
-          todayReports = count || 0
-        } catch { /* */ }
-
-        try {
-          const { count } = await supabase.from('deposits').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-          pendingDeposits = count || 0
-        } catch { /* */ }
-
-        try {
-          if (settledAt) {
-            // Bulan LUNAS — gunakan nominal dari settlement
-            monthlyDeposits = settlementTotalAmount
-          } else {
-            // Belum settle — query live deposits
-            let depositsQuery = supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDayOfMonth).lte('deposit_date', lastDayOfMonth)
-            const { data: deposits } = await depositsQuery
-            monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
-          }
-        } catch { /* */ }
-
-        setStats({ totalDrivers, todayReports, pendingDeposits, monthlyDeposits, monthlyTarget: MONTHLY_TARGET })
-      } catch {
-        setStats({ totalDrivers: 0, todayReports: 0, pendingDeposits: 0, monthlyDeposits: 0, monthlyTarget: MONTHLY_TARGET })
-      }
-
-      // 3. Fetch drivers + all deposits in ONE query (fixes N+1)
       try {
-        const { data } = await supabase.from('drivers').select('id, vehicle_plate, profile:profiles(full_name, email)').eq('is_active', true).order('created_at')
-        if (data) {
-          const driverList = data as unknown as DriverInfo[]
-          setDrivers(driverList)
+        const { count } = await supabase.from('deposits').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+        pendingDeposits = count || 0
+      } catch { /* */ }
 
-          // Single query: fetch all deposits for the month across ALL drivers
-          let allDepositsQuery = supabase
-            .from('deposits')
-            .select('driver_id, amount, reviewed_at')
+      try {
+        if (settledAt) {
+          // Bulan LUNAS — gunakan nominal dari settlement
+          monthlyDeposits = settlementTotalAmount
+        } else {
+          // Belum settle — query live deposits
+          const { data: deposits } = await supabase
+            .from('deposits').select('amount')
             .eq('status', 'approved')
             .gte('deposit_date', firstDayOfMonth)
             .lte('deposit_date', lastDayOfMonth)
-
-          if (settledAt) {
-            allDepositsQuery = allDepositsQuery.lt('reviewed_at', settledAt)
-          }
-
-          const { data: allDeposits } = await allDepositsQuery
-
-          // Group deposits by driver_id in memory (no extra queries)
-          const depositMap = new Map<string, number>()
-          ;(allDeposits || []).forEach((dep: { driver_id: string; amount: number }) => {
-            const existing = depositMap.get(dep.driver_id) || 0
-            depositMap.set(dep.driver_id, existing + Number(dep.amount))
-          })
-
-          // Build driver deposit info from the grouped data
-          const results = driverList.map((d) => {
-            const total = depositMap.get(d.id) || 0
-            const pct = Math.round((total / MONTHLY_TARGET) * 100)
-            return {
-              driverId: d.id,
-              driverName: d.profile?.full_name || 'Driver',
-              vehiclePlate: d.vehicle_plate || '-',
-              monthlyDeposit: total,
-              target: MONTHLY_TARGET,
-              percentage: pct,
-            }
-          })
-
-          setDriverDeposits(results)
+          monthlyDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
         }
       } catch { /* */ }
 
-      setLoading(false)
+      setStats({ totalDrivers, todayReports, pendingDeposits, monthlyDeposits, monthlyTarget: MONTHLY_TARGET })
+    } catch {
+      setStats({ totalDrivers: 0, todayReports: 0, pendingDeposits: 0, monthlyDeposits: 0, monthlyTarget: MONTHLY_TARGET })
     }
 
+    // 3. Fetch drivers + all deposits in ONE query (fixes N+1)
+    try {
+      const { data } = await supabase
+        .from('drivers')
+        .select('id, vehicle_plate, profile:profiles(full_name, email)')
+        .eq('is_active', true)
+        .order('created_at')
+
+      if (data) {
+        const driverList = data as unknown as DriverInfo[]
+        setDrivers(driverList)
+
+        // Single query: fetch all approved deposits for the month across ALL drivers
+        // Always show ALL approved deposits — post-settlement deposits are still tracked
+        const { data: allDeposits } = await supabase
+          .from('deposits')
+          .select('driver_id, amount')
+          .eq('status', 'approved')
+          .gte('deposit_date', firstDayOfMonth)
+          .lte('deposit_date', lastDayOfMonth)
+
+        // Group deposits by driver_id in memory (no extra queries)
+        const depositMap = new Map<string, number>()
+        ;(allDeposits || []).forEach((dep: { driver_id: string; amount: number }) => {
+          depositMap.set(dep.driver_id, (depositMap.get(dep.driver_id) || 0) + Number(dep.amount))
+        })
+
+        // Build driver deposit info from the grouped data
+        const results = driverList.map((d) => {
+          const total = depositMap.get(d.id) || 0
+          const pct = Math.round((total / MONTHLY_TARGET) * 100)
+          return {
+            driverId: d.id,
+            driverName: d.profile?.full_name || 'Driver',
+            vehiclePlate: d.vehicle_plate || '-',
+            monthlyDeposit: total,
+            target: MONTHLY_TARGET,
+            percentage: pct,
+          }
+        })
+
+        setDriverDeposits(results)
+      }
+    } catch { /* */ }
+
+    setLoading(false)
+  }, [selectedYear, selectedMonth])
+
+  useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 10000)
     fetchAll()
 
+    const supabase = createClient()
     const channel = supabase
       .channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_reports' }, () => fetchAll())
@@ -185,7 +188,7 @@ export default function OwnerDashboard() {
       .subscribe()
 
     return () => { clearTimeout(timeout); supabase.removeChannel(channel) }
-  }, [selectedYear, selectedMonth])
+  }, [fetchAll])
 
   // Fetch selected driver data
   useEffect(() => {
