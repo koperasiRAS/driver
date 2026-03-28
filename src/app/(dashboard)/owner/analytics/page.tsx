@@ -232,7 +232,8 @@ export default function OwnerAnalyticsPage() {
   // Initial fetch + timeout guard
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 10000)
-    fetchData()
+    // void silences the TypeScript promise-return warning; fetchData has its own try/catch
+    void fetchData()
     return () => clearTimeout(timeout)
   }, [fetchData])
 
@@ -241,8 +242,8 @@ export default function OwnerAnalyticsPage() {
     const supabase = createClient()
     const channel = supabase
       .channel('analytics-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, () => { void fetchData() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, () => { void fetchData() })
       .subscribe()
 
     return () => supabase.removeChannel(channel)
