@@ -227,59 +227,38 @@ export default function OwnerAnalyticsPage() {
   useEffect(() => {
     const supabase = createClient()
 
-    async function loadRealtime() {
-      const now = new Date()
-      const currentYear = now.getFullYear()
-      const currentMonth = now.getMonth()
-      const monthlyArr: MonthlyData[] = []
+    const loadRealtime = () => {
+      supabase
+        .from('deposits')
+        .select('amount')
+        .eq('status', 'approved')
+        .then(({ data: deposits }) => {
+          const now = new Date()
+          const currentMonth = now.getMonth()
+          const currentYear = now.getFullYear()
 
-      const settlementMap: Record<string, MonthlySettlement> = {}
-      try {
-        const settlementYearMonths = []
-        for (let i = 5; i >= 0; i--) {
-          const m = new Date(currentYear, currentMonth - i, 1)
-          settlementYearMonths.push({ year: m.getFullYear(), month: m.getMonth() + 1 })
-        }
-        for (const ym of settlementYearMonths) {
-          try {
-            const { data: s } = await supabase
-              .from('monthly_settlements')
-              .select('*')
-              .eq('settled_year', ym.year)
-              .eq('settled_month', ym.month)
-              .single()
-            if (s) settlementMap[`${ym.year}-${ym.month}`] = s
-          } catch { /* no settlement */ }
-        }
-      } catch { /* ignore */ }
+          const approvedDeposits = (deposits || []).filter(d => {
+            const depDate = new Date(d.deposit_date)
+            return depDate.getFullYear() === currentYear && depDate.getMonth() === currentMonth
+          })
+          const total = approvedDeposits.reduce((sum, d) => sum + Number(d.amount), 0)
 
-      for (let i = 5; i >= 0; i--) {
-        const month = new Date(currentYear, currentMonth - i, 1)
-        const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
-        const firstDay = new Date(new Date(currentYear, currentMonth - i, 1).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
-        const lastDay = new Date(new Date(currentYear, currentMonth - i + 1, 0).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
-        const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
-        const hasSettlement = !!settlementMap[settlementKey]
+          setMonthlyData(prev => {
+            const updated = [...prev]
+            if (updated.length > 0) updated[updated.length - 1] = { ...updated[updated.length - 1], totalDeposits: total }
+            return updated
+          })
+        })
 
-        try {
-          if (hasSettlement) {
-            monthlyArr.push({ month: monthStr, totalDeposits: settlementMap[settlementKey].total_amount, target: MONTHLY_TARGET })
-          } else {
-            const { data: deposits } = await supabase.from('deposits').select('amount').eq('status', 'approved').gte('deposit_date', firstDay).lte('deposit_date', lastDay)
-            monthlyArr.push({ month: monthStr, totalDeposits: (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0), target: MONTHLY_TARGET })
-          }
-        } catch (e) {
-          monthlyArr.push({ month: monthStr, totalDeposits: 0, target: MONTHLY_TARGET })
-        }
-      }
-      setMonthlyData(monthlyArr)
-
-      try {
-        const { data: settlementData } = await supabase.from('monthly_settlements').select('*').eq('settled_year', currentYear).eq('settled_month', currentMonth + 1).single()
-        setCurrentSettlement(settlementData || null)
-      } catch {
-        setCurrentSettlement(null)
-      }
+      supabase
+        .from('monthly_settlements')
+        .select('*')
+        .eq('settled_year', new Date().getFullYear())
+        .eq('settled_month', new Date().getMonth() + 1)
+        .single()
+        .then(({ data: settlementData }) => {
+          setCurrentSettlement(settlementData || null)
+        })
     }
 
     const channel = supabase

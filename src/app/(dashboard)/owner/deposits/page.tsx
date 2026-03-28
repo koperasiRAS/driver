@@ -54,7 +54,7 @@ export default function OwnerDepositsPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'deposits' },
         () => {
-          fetchDeposits()
+          fetchDeposits().catch(console.error)
         }
       )
       .subscribe()

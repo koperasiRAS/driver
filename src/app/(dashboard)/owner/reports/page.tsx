@@ -54,7 +54,7 @@ export default function OwnerReportsPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'daily_reports' },
         () => {
-          fetchReports()
+          fetchReports().catch(console.error)
         }
       )
       .subscribe()
