@@ -230,7 +230,7 @@ export default function OwnerAnalyticsPage() {
     const loadRealtime = () => {
       supabase
         .from('deposits')
-        .select('amount')
+        .select('amount, deposit_date')
         .eq('status', 'approved')
         .then(({ data: deposits }) => {
           const now = new Date()
@@ -263,11 +263,11 @@ export default function OwnerAnalyticsPage() {
 
     const channel = supabase
       .channel('analytics-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, loadRealtime)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, loadRealtime)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, (payload) => { loadRealtime(); void payload })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_settlements' }, (payload) => { loadRealtime(); void payload })
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
+    return () => { void supabase.removeChannel(channel) }
   }, [])
 
   const handleSettle = async () => {
