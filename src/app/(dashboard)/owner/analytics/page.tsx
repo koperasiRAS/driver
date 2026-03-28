@@ -38,63 +38,87 @@ export default function OwnerAnalyticsPage() {
         const now = new Date()
         const currentYear = now.getFullYear()
         const currentMonth = now.getMonth()
-        const monthlyArr: MonthlyData[] = []
 
-        // Fetch settlements for all months in the 6-month window
-        const settlementMap: Record<string, MonthlySettlement> = {}
-        try {
-          const settlementYearMonths = []
-          for (let i = 5; i >= 0; i--) {
-            const m = new Date(currentYear, currentMonth - i, 1)
-            settlementYearMonths.push({ year: m.getFullYear(), month: m.getMonth() + 1 })
-          }
-
-          for (const ym of settlementYearMonths) {
-            try {
-              const { data: s } = await supabase
-                .from('monthly_settlements')
-                .select('*')
-                .eq('settled_year', ym.year)
-                .eq('settled_month', ym.month)
-                .single()
-              if (s) {
-                settlementMap[`${ym.year}-${ym.month}`] = s
-              }
-            } catch { /* no settlement for this month */ }
-          }
-        } catch { /* ignore */ }
-
+        // Build 6-month window
+        const monthWindows = []
         for (let i = 5; i >= 0; i--) {
           const month = new Date(currentYear, currentMonth - i, 1)
-          const monthStr = month.toLocaleString('id-ID', { month: 'short', year: 'numeric' })
-          // Apply Jakarta UTC+7 offset so date boundaries are correct
-          const firstDay = new Date(new Date(currentYear, currentMonth - i, 1).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
-          const lastDay = new Date(new Date(currentYear, currentMonth - i + 1, 0).getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]
-          const settlementKey = `${month.getFullYear()}-${month.getMonth() + 1}`
-          const hasSettlement = !!settlementMap[settlementKey]
-
-          try {
-            if (hasSettlement) {
-              monthlyArr.push({
-                month: monthStr,
-                totalDeposits: settlementMap[settlementKey].total_amount,
-                target: MONTHLY_TARGET,
-              })
-            } else {
-              const { data: deposits } = await supabase
-                .from('deposits')
-                .select('amount')
-                .eq('status', 'approved')
-                .gte('deposit_date', firstDay)
-                .lte('deposit_date', lastDay)
-
-              const totalDeposits = (deposits || []).reduce((sum, d) => sum + Number(d.amount), 0)
-              monthlyArr.push({ month: monthStr, totalDeposits, target: MONTHLY_TARGET })
-            }
-          } catch (e) {
-            monthlyArr.push({ month: monthStr, totalDeposits: 0, target: MONTHLY_TARGET })
-          }
+          const year = month.getFullYear()
+          const monthNum = month.getMonth() + 1
+          const firstDay = new Date(year, month.getMonth(), 1)
+          const lastDay = new Date(year, month.getMonth() + 1, 0)
+          monthWindows.push({
+            year,
+            month: monthNum,
+            monthStr: month.toLocaleString('id-ID', { month: 'short', year: 'numeric' }),
+            firstDay: firstDay.toISOString().split('T')[0],
+            lastDay: lastDay.toISOString().split('T')[0],
+          })
         }
+
+        // 1. Fetch all settlements for 6-month window (single query)
+        const settlementMap: Record<string, MonthlySettlement> = {}
+        try {
+          const settlementYearMonths = monthWindows.map(w => `(${w.year},${w.month})`).join(',')
+          const { data: settlements } = await supabase
+            .from('monthly_settlements')
+            .select('*')
+            .or(`(settled_year,settled_month).in.(${settlementYearMonths})`)
+          ;(settlements || []).forEach(s => {
+            settlementMap[`${s.settled_year}-${s.settled_month}`] = s
+          })
+        } catch { /* ignore */ }
+
+        // 2. Fetch ALL approved deposits for 6-month window in ONE query
+        const earliestFirst = monthWindows[0].firstDay
+        const latestLast = monthWindows[monthWindows.length - 1].lastDay
+        const { data: allDeposits } = await supabase
+          .from('deposits')
+          .select('amount, deposit_date, reviewed_at, created_at')
+          .eq('status', 'approved')
+          .gte('deposit_date', earliestFirst)
+          .lte('deposit_date', latestLast)
+
+        // 3. Group deposits by month in memory
+        const depositsByMonth: Record<string, typeof allDeposits> = {}
+        for (const w of monthWindows) {
+          depositsByMonth[`${w.year}-${w.month}`] = []
+        }
+        ;(allDeposits || []).forEach((d) => {
+          const depDate = new Date(d.deposit_date)
+          const key = `${depDate.getFullYear()}-${depDate.getMonth() + 1}`
+          if (depositsByMonth[key]) {
+            depositsByMonth[key].push(d)
+          }
+        })
+
+        // 4. Build monthly data: separate settled vs late deposits
+        const monthlyArr: MonthlyData[] = monthWindows.map(w => {
+          const settlement = settlementMap[`${w.year}-${w.month}`]
+          const deposits = depositsByMonth[`${w.year}-${w.month}`] || []
+
+          if (settlement) {
+            // Settled month: separate based on when deposit was reviewed
+            let settled = 0
+            let late = 0
+            const settledAt = new Date(settlement.settled_at).getTime()
+
+            for (const d of deposits) {
+              const reviewedAt = d.reviewed_at ? new Date(d.reviewed_at).getTime() : new Date(d.created_at).getTime()
+              if (reviewedAt <= settledAt) {
+                settled += Number(d.amount)
+              } else {
+                late += Number(d.amount)
+              }
+            }
+            return { month: w.monthStr, totalDeposits: settled, lateDeposits: late, target: MONTHLY_TARGET }
+          } else {
+            // Not settled: all approved deposits are "on track"
+            const totalDeposits = deposits.reduce((sum, d) => sum + Number(d.amount), 0)
+            return { month: w.monthStr, totalDeposits, lateDeposits: 0, target: MONTHLY_TARGET }
+          }
+        })
+
         setMonthlyData(monthlyArr)
 
         // Get driver performance
@@ -191,16 +215,24 @@ export default function OwnerAnalyticsPage() {
             const prevMonthDate = new Date(currentYear, currentMonth - 1, 1)
             const prevFirstDay = prevMonthDate.toISOString().split('T')[0]
             const prevLastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+            const settledAtMs = new Date(settlementData.settled_at).getTime()
 
-            const { data: lateDeposits } = await supabase
+            // Fetch all deposits from prev month (including null reviewed_at)
+            const { data: prevDeposits } = await supabase
               .from('deposits')
-              .select('amount')
+              .select('amount, reviewed_at, created_at')
               .eq('status', 'approved')
               .gte('deposit_date', prevFirstDay)
               .lte('deposit_date', prevLastDay)
-              .gte('reviewed_at', settlementData.settled_at)
 
-            const lateTotal = (lateDeposits || []).reduce((s, d) => s + Number(d.amount), 0)
+            let lateTotal = 0
+            ;(prevDeposits || []).forEach((d: { amount: unknown; reviewed_at?: string; created_at: string }) => {
+              const reviewedAtMs = d.reviewed_at ? new Date(d.reviewed_at).getTime() : new Date(d.created_at).getTime()
+              if (reviewedAtMs > settledAtMs) {
+                lateTotal += Number(d.amount)
+              }
+            })
+
             setLateDepositsAmount(lateTotal)
             setLateDepositsMonth(prevMonthDate.toLocaleString('id-ID', { month: 'long' }))
           } else {
@@ -308,7 +340,7 @@ export default function OwnerAnalyticsPage() {
     return <LoadingPage />
   }
 
-  const maxDeposit = Math.max(...(monthlyData || []).map(d => d.totalDeposits), MONTHLY_TARGET)
+  const maxDeposit = Math.max(...(monthlyData || []).map(d => d.totalDeposits + d.lateDeposits), MONTHLY_TARGET)
 
   const getActionLabel = (action: string) => {
     const labels: Record<string, string> = {
@@ -362,31 +394,51 @@ export default function OwnerAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(monthlyData || []).map((data, idx) => (
+                  {(monthlyData || []).map((data, idx) => {
+                    const settledPct = maxDeposit > 0 ? Math.min((data.totalDeposits / maxDeposit) * 100, 100) : 0
+                    const latePct = maxDeposit > 0 ? Math.min((data.lateDeposits / maxDeposit) * 100, 100) : 0
+                    const targetPct = maxDeposit > 0 ? Math.min((data.target / maxDeposit) * 100, 100) : 0
+                    const grandTotal = data.totalDeposits + data.lateDeposits
+                    return (
                     <div key={idx}>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-slate-600 dark:text-slate-300">{data.month}</span>
                         <span className="font-medium">
-                          {formatCurrency(data.totalDeposits)} / {formatCurrency(data.target)}
+                          {formatCurrency(grandTotal)}
+                          {data.lateDeposits > 0 && (
+                            <span className="text-amber-500 text-xs ml-1">(+{formatCurrency(data.lateDeposits)} telat)</span>
+                          )}
+                          {' / '}{formatCurrency(data.target)}
                         </span>
                       </div>
                       <div className="flex gap-1 h-6">
                         <div
                           className="bg-teal-600 rounded-sm"
-                          style={{ width: `${Math.min((data.totalDeposits / maxDeposit) * 100, 100)}%` }}
+                          style={{ width: `${settledPct}%` }}
                         />
+                        {data.lateDeposits > 0 && (
+                          <div
+                            className="bg-amber-400 rounded-sm"
+                            style={{ width: `${latePct}%` }}
+                          />
+                        )}
                         <div
                           className="bg-slate-200 dark:bg-slate-700 rounded-sm"
-                          style={{ width: `${Math.min((data.target / maxDeposit) * 100, 100)}%` }}
+                          style={{ width: `${targetPct}%` }}
                         />
                       </div>
                     </div>
-                  ))}
+                  )
+                  })}
                 </div>
-                <div className="mt-4 flex items-center gap-4 text-xs">
+                <div className="mt-4 flex items-center gap-4 text-xs flex-wrap">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 bg-teal-600 rounded-sm" />
-                    <span className="text-slate-500">Realisasi</span>
+                    <span className="text-slate-500">Settled</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-amber-400 rounded-sm" />
+                    <span className="text-slate-500">Telat Disetor</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 bg-slate-200 dark:bg-slate-700 rounded-sm" />

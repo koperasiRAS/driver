@@ -40,6 +40,9 @@ export default function OwnerDashboard() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [driverDeposits, setDriverDeposits] = useState<DriverDepositInfo[]>([])
   const [currentSettlement, setCurrentSettlement] = useState<{ settled_at: string } | null>(null)
+  // Late deposits from the previous month — shown when current selected month is settled
+  const [prevMonthLateAmount, setPrevMonthLateAmount] = useState(0)
+  const [prevMonthLateLabel, setPrevMonthLateLabel] = useState<string | null>(null)
 
   // Filter state
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
@@ -84,6 +87,41 @@ export default function OwnerDashboard() {
       setCurrentSettlement(settlement || null)
     } catch {
       setCurrentSettlement(null)
+    }
+
+    // 1b. Fetch late deposits from the PREVIOUS month when selected month is settled
+    // Late deposit = deposit approved AFTER the settlement date (belongs to prev month)
+    setPrevMonthLateAmount(0)
+    setPrevMonthLateLabel(null)
+    if (settledAt) {
+      const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear
+      const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1
+      const prevFirstDay = new Date(prevYear, prevMonth - 1, 1).toISOString().split('T')[0]
+      const prevLastDay = new Date(prevYear, prevMonth, 0).toISOString().split('T')[0]
+      const settledAtMs = new Date(settledAt).getTime()
+
+      try {
+        const { data: prevDeposits } = await supabase
+          .from('deposits')
+          .select('amount, reviewed_at, created_at')
+          .eq('status', 'approved')
+          .gte('deposit_date', prevFirstDay)
+          .lte('deposit_date', prevLastDay)
+
+        let lateTotal = 0
+        ;(prevDeposits || []).forEach((d: { amount: unknown; reviewed_at?: string; created_at: string }) => {
+          const reviewedAtMs = d.reviewed_at ? new Date(d.reviewed_at).getTime() : new Date(d.created_at).getTime()
+          if (reviewedAtMs > settledAtMs) {
+            lateTotal += Number(d.amount)
+          }
+        })
+
+        if (lateTotal > 0) {
+          const prevMonthDate = new Date(prevYear, prevMonth - 1, 1)
+          setPrevMonthLateAmount(lateTotal)
+          setPrevMonthLateLabel(prevMonthDate.toLocaleString('id-ID', { month: 'long' }))
+        }
+      } catch { /* non-critical */ }
     }
 
     // 2. Fetch stats
@@ -330,6 +368,24 @@ export default function OwnerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Late deposits warning — shown when selected month is settled but had late deposits from prev month */}
+      {currentSettlement && prevMonthLateAmount > 0 && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg animate-fade-in">
+          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-amber-800 dark:text-amber-300">
+              Ada setoran telat dari {prevMonthLateLabel}
+            </p>
+            <p className="text-sm text-amber-600 dark:text-amber-400 mt-0.5">
+              {formatCurrency(prevMonthLateAmount)} belum ikut settlement bulan sebelumnya — perlu disetor manual ke BOS
+            </p>
+          </div>
+          <Badge variant="warning" className="shrink-0">
+            +{formatCurrency(prevMonthLateAmount)}
+          </Badge>
+        </div>
+      )}
 
       {/* ====== PER-DRIVER DEPOSIT MONITORING ====== */}
       {driverDeposits.length > 0 && driverDeposits.some(dd => dd.monthlyDeposit > 0) ? (

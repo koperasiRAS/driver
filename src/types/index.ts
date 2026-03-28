@@ -119,7 +119,10 @@ export interface DashboardStats {
 
 export interface MonthlyData {
   month: string
+  /** Sum of deposits reviewed/approved at or before the settlement date (shown in chart bar) */
   totalDeposits: number
+  /** Deposits reviewed after the settlement date — still owed to BOS */
+  lateDeposits: number
   target: number
 }
 

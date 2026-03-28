@@ -93,9 +93,10 @@ export async function getMonthlyData(): Promise<MonthlyData[]> {
     monthlyTotals.set(monthKey, (monthlyTotals.get(monthKey) || 0) + Number(d.amount))
   })
 
-  return monthRanges.map(({ monthString, firstDay, lastDay }) => ({
+  return monthRanges.map(({ monthString }) => ({
     month: monthString,
     totalDeposits: monthlyTotals.get(monthString) || 0,
+    lateDeposits: 0,
     target: MONTHLY_TARGET,
   }))
 }
